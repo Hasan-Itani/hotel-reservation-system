@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { GuestRegisterForm } from "@/components/guest/GuestRegisterForm";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
-import { Card, CardContent } from "@/components/ui/Card";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
 import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
 
@@ -24,26 +23,29 @@ export default async function GuestRegisterPage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-luxury-cream text-luxury-ink">
       <PublicHeader />
 
-      <main className="mx-auto flex max-w-7xl items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-lg">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+      <main className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <section className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/5">
+          <div className="border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#ffffff_55%,#fbf7ef_100%)] p-6 text-center sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold">
+              Create account
+            </p>
+
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-luxury-ink">
               Create your guest account
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+
+            <p className="mt-3 text-sm leading-6 text-slate-600">
               Register to book stays and manage your reservations.
             </p>
           </div>
 
-          <Card>
-            <CardContent>
-              <GuestRegisterForm />
-            </CardContent>
-          </Card>
-        </div>
+          <div className="p-6 sm:p-8">
+            <GuestRegisterForm />
+          </div>
+        </section>
       </main>
 
       <PublicFooter />

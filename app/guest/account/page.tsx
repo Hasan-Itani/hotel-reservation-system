@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { GuestProfileForm } from "@/components/guest/GuestProfileForm";
 import { redirect } from "next/navigation";
+import { GuestProfileForm } from "@/components/guest/GuestProfileForm";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { GuestLogoutButton } from "@/components/guest/GuestLogoutButton";
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
 import { canEnterAdmin } from "@/lib/frontend/permissions";
@@ -19,70 +18,82 @@ export default async function GuestAccountPage() {
   const isStaffUser = canEnterAdmin(user);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-luxury-cream text-luxury-ink">
       <PublicHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-          <div>
-            <Badge variant={isStaffUser ? "primary" : "success"}>
-              {isStaffUser ? "Staff account" : "Guest account"}
-            </Badge>
+      <main className="flex-1">
+        <section className="border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#fbf7ef_38%,#ffffff_100%)]">
+          <div className="luxury-container flex flex-col justify-between gap-6 py-10 sm:flex-row sm:items-start lg:py-14">
+            <div>
+              <Badge variant={isStaffUser ? "primary" : "success"}>
+                {isStaffUser ? "Staff account" : "Guest account"}
+              </Badge>
 
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground">
-              Welcome, {user.firstName}
-            </h1>
+              <h1 className="mt-5 text-4xl font-black tracking-tight text-luxury-ink sm:text-5xl">
+                Welcome, {user.firstName}
+              </h1>
 
-            <p className="mt-2 text-sm text-muted-foreground">
-              Manage your profile, reservations, and payments.
-            </p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                Manage your profile, reservations, and payments from your guest
+                account.
+              </p>
+            </div>
+
+            <GuestLogoutButton />
           </div>
-
-          <GuestLogoutButton />
         </section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-bold text-foreground">
-                Account details
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Update your guest profile information.
-              </p>
-            </CardHeader>
+        <section className="luxury-container py-10 lg:py-12">
+          <div className="grid gap-6 lg:grid-cols-[1fr_390px]">
+            <div className="overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/5">
+              <div className="border-b border-luxury-stone p-6 sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold">
+                  Account details
+                </p>
 
-            <CardContent>
-              <GuestProfileForm user={user} />
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-luxury-ink">
+                  Profile information
+                </h2>
 
-              {isStaffUser ? (
-                <div className="mt-5 rounded-xl border border-warning-soft bg-warning-soft px-4 py-3 text-sm text-warning">
-                  This account also has staff/admin access. Use the admin panel for hotel
-                  operations.
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Update your guest profile information.
+                </p>
+              </div>
 
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-bold text-foreground">
-                Quick actions
-              </h2>
-            </CardHeader>
+              <div className="p-6 sm:p-8">
+                <GuestProfileForm user={user} />
 
-            <CardContent>
-              <div className="grid gap-3">
+                {isStaffUser ? (
+                  <div className="mt-6 rounded-3xl border border-warning-soft bg-warning-soft px-5 py-4 text-sm leading-6 text-warning">
+                    This account also has staff/admin access. Use the admin
+                    panel for hotel operations.
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <aside className="overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/5 lg:sticky lg:top-24">
+              <div className="border-b border-luxury-stone p-6">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold">
+                  Quick actions
+                </p>
+
+                <h2 className="mt-3 text-xl font-black text-luxury-ink">
+                  Guest tools
+                </h2>
+              </div>
+
+              <div className="grid gap-3 p-6">
                 <Link
                   href="/guest/bookings"
-                  className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-hover"
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink"
                 >
                   My reservations
                 </Link>
 
                 <Link
                   href="/hotels"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-luxury-stone bg-white px-6 text-sm font-bold text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream"
                 >
                   Browse hotels
                 </Link>
@@ -90,15 +101,15 @@ export default async function GuestAccountPage() {
                 {isStaffUser ? (
                   <Link
                     href="/admin"
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
+                    className="inline-flex h-12 items-center justify-center rounded-full border border-luxury-stone bg-white px-6 text-sm font-bold text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream"
                   >
                     Open admin panel
                   </Link>
                 ) : null}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </aside>
+          </div>
+        </section>
       </main>
 
       <PublicFooter />

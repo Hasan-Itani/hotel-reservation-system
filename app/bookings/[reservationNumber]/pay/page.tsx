@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicPaymentForm } from "@/components/public/PublicPaymentForm";
-import { Card, CardContent } from "@/components/ui/Card";
 import type {
   PublicBookingDetails,
   PublicBookingDetailsResponse,
@@ -55,8 +54,8 @@ async function getBooking(input: {
       cache: "no-store",
       headers: cookie
         ? {
-          cookie,
-        }
+            cookie,
+          }
         : undefined,
     },
   );
@@ -91,25 +90,34 @@ export default async function PublicPayPage({
 
   if (!booking) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="flex min-h-screen flex-col bg-luxury-cream text-luxury-ink">
         <PublicHeader />
 
-        <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-          <Card>
-            <CardContent>
-              <h1 className="text-xl font-bold text-foreground">
-                Booking not found
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+        <main className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+          <section className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/5">
+            <div className="border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#ffffff_55%,#fbf7ef_100%)] p-6 sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold">
+                Payment lookup
+              </p>
 
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-luxury-ink">
+                Booking not found.
+              </h1>
+
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                {error}
+              </p>
+            </div>
+
+            <div className="p-6 sm:p-8">
               <Link
                 href="/bookings/lookup"
-                className="mt-5 inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-hover"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink"
               >
                 Try booking lookup
               </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </main>
 
         <PublicFooter />
@@ -118,14 +126,45 @@ export default async function PublicPayPage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-luxury-cream text-luxury-ink">
       <PublicHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <PublicPaymentForm
-          booking={booking}
-          accessGuestEmail={guestEmail || undefined}
-        />
+      <main className="flex-1">
+        <section className="border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#fbf7ef_38%,#ffffff_100%)]">
+          <div className="luxury-container py-10 lg:py-14">
+            <Link
+              href={`/bookings/${booking.reservationNumber}${
+                guestEmail ? `?guestEmail=${encodeURIComponent(guestEmail)}` : ""
+              }`}
+              className="inline-flex rounded-full border border-luxury-stone bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:border-luxury-gold hover:text-luxury-ink"
+            >
+              Back to booking details
+            </Link>
+
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold">
+              Secure payment
+            </p>
+
+            <h1 className="mt-3 max-w-4xl text-4xl font-black tracking-tight text-luxury-ink sm:text-5xl">
+              Complete your payment.
+            </h1>
+
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+              Pay the remaining balance for reservation{" "}
+              <span className="font-bold text-luxury-ink">
+                {booking.reservationNumber}
+              </span>
+              .
+            </p>
+          </div>
+        </section>
+
+        <section className="luxury-container py-10 lg:py-12">
+          <PublicPaymentForm
+            booking={booking}
+            accessGuestEmail={guestEmail || undefined}
+          />
+        </section>
       </main>
 
       <PublicFooter />

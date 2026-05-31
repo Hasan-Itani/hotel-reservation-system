@@ -9,6 +9,7 @@ import type {
   PublicAvailabilityRoomType,
   PublicRoomType,
 } from "@/lib/frontend/types";
+import Image from "next/image";
 
 type HotelRoomsAvailabilityProps = {
   hotelSlug: string;
@@ -97,11 +98,11 @@ export function HotelRoomsAvailability({
     const baseRoomTypes = availability
       ? availability.roomTypes.filter((roomType) => roomType.totalRooms > 0)
       : roomTypes
-          .filter((roomType) => roomType.totalRooms > 0)
-          .map((roomType) => ({
-            ...roomType,
-            totalRooms: roomType.totalRooms,
-          }));
+        .filter((roomType) => roomType.totalRooms > 0)
+        .map((roomType) => ({
+          ...roomType,
+          totalRooms: roomType.totalRooms,
+        }));
 
     if (!selectedRoomTypeId) {
       return baseRoomTypes;
@@ -427,10 +428,12 @@ export function HotelRoomsAvailability({
                   <div className="grid lg:grid-cols-[360px_1fr]">
                     <div className="relative h-72 bg-slate-200 lg:h-full">
                       {image ? (
-                        <img
+                        <Image
                           src={image.url}
                           alt={image.altText || roomType.name}
-                          className="h-full w-full object-cover"
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 360px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-100 px-6 text-center">
@@ -522,9 +525,8 @@ export function HotelRoomsAvailability({
                           </p>
                           <p className="mt-2 text-sm font-black text-luxury-ink">
                             {isShowingAvailability
-                              ? `${roomType.availableRooms ?? 0} / ${
-                                  roomType.totalRooms
-                                }`
+                              ? `${roomType.availableRooms ?? 0} / ${roomType.totalRooms
+                              }`
                               : roomType.totalRooms}
                           </p>
                         </div>

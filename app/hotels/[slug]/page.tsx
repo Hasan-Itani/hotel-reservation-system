@@ -13,6 +13,7 @@ import type {
 } from "@/lib/frontend/types";
 import type { Metadata } from "next";
 import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
+import Image from "next/image";
 
 type HotelDetailsPageProps = {
     params: Promise<{
@@ -242,10 +243,13 @@ export default async function HotelDetailsPage({
                         <div className="overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/10">
                             <div className="relative h-[22rem] bg-slate-200 sm:h-[30rem]">
                                 {heroImage ? (
-                                    <img
+                                    <Image
                                         src={heroImage.url}
                                         alt={heroImage.altText || hotel.name}
-                                        className="h-full w-full object-cover"
+                                        fill
+                                        priority
+                                        sizes="(max-width: 1024px) 100vw, 470px"
+                                        className="object-cover"
                                     />
                                 ) : (
                                     <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-200 to-slate-100 px-6 text-center">
@@ -338,12 +342,14 @@ export default async function HotelDetailsPage({
                                             key={roomType.id}
                                             className="overflow-hidden rounded-[1.75rem] border border-luxury-stone bg-luxury-cream shadow-sm"
                                         >
-                                            <div className="h-44 bg-slate-200">
+                                            <div className="relative h-44 bg-slate-200">
                                                 {image ? (
-                                                    <img
+                                                    <Image
                                                         src={image.url}
                                                         alt={image.altText || roomType.name}
-                                                        className="h-full w-full object-cover"
+                                                        fill
+                                                        sizes="(max-width: 768px) 100vw, 420px"
+                                                        className="object-cover"
                                                     />
                                                 ) : (
                                                     <div className="flex h-full items-center justify-center px-4 text-center">

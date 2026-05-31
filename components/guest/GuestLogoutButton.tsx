@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { clientFetchJson } from "@/lib/frontend/api-client";
 import type { LogoutResponse } from "@/lib/frontend/types";
-import { Button } from "@/components/ui/Button";
 
 export function GuestLogoutButton() {
   const router = useRouter();
@@ -24,13 +23,13 @@ export function GuestLogoutButton() {
   }
 
   return (
-    <Button
-      variant="secondary"
+    <button
+      type="button"
       onClick={logout}
       disabled={isLoggingOut}
-      className="h-9"
+      className="inline-flex h-12 items-center justify-center rounded-full border border-luxury-stone bg-white px-6 text-sm font-bold text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream disabled:opacity-60"
     >
       {isLoggingOut ? "Signing out..." : "Sign out"}
-    </Button>
+    </button>
   );
 }

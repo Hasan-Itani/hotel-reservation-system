@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
 import { serverFetchJson } from "@/lib/frontend/api-server";
@@ -13,12 +12,14 @@ import type {
   ReservationStatus,
 } from "@/lib/frontend/types";
 
+const publicDateFormatter = new Intl.DateTimeFormat("en", {
+  year: "numeric",
+  month: "short",
+  day: "2-digit",
+});
+
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  }).format(new Date(value));
+  return publicDateFormatter.format(new Date(value));
 }
 
 function formatStatus(status: ReservationStatus) {
@@ -34,6 +35,7 @@ function getStatusBadgeVariant(
   if (status === "CHECKED_OUT") return "default";
   if (status === "CANCELLED") return "danger";
   if (status === "NO_SHOW") return "danger";
+
   return "default";
 }
 
@@ -69,64 +71,71 @@ export default async function GuestBookingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-luxury-cream text-luxury-ink">
       <PublicHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <Badge variant="success">Guest account</Badge>
+      <main className="flex-1">
+        <section className="border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#fbf7ef_38%,#ffffff_100%)]">
+          <div className="luxury-container flex flex-col justify-between gap-6 py-10 sm:flex-row sm:items-end lg:py-14">
+            <div>
+              <Badge variant="success">Guest account</Badge>
 
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground">
-              My reservations
-            </h1>
+              <h1 className="mt-5 text-4xl font-black tracking-tight text-luxury-ink sm:text-5xl">
+                My reservations
+              </h1>
 
-            <p className="mt-2 text-sm text-muted-foreground">
-              View bookings linked to your guest account.
-            </p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                View bookings linked to your guest account, check balances, and
+                continue payments.
+              </p>
+            </div>
+
+            <Link
+              href="/hotels"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink"
+            >
+              Book another stay
+            </Link>
           </div>
-
-          <Link
-            href="/hotels"
-            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-hover"
-          >
-            Book another stay
-          </Link>
         </section>
 
-        <section className="mt-8">
+        <section className="luxury-container py-10 lg:py-12">
           {data.bookings.length === 0 ? (
-            <Card>
-              <CardContent>
-                <h2 className="text-lg font-bold text-foreground">
-                  No reservations yet
+            <div className="overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/5">
+              <div className="border-b border-luxury-stone p-6 sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold">
+                  Reservations
+                </p>
+
+                <h2 className="mt-3 text-2xl font-black tracking-tight text-luxury-ink">
+                  No reservations yet.
                 </h2>
 
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
                   Reservations created before guest-login booking was enabled may
                   not appear here. You can still find them through booking
                   lookup.
                 </p>
+              </div>
 
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/hotels"
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-hover"
-                  >
-                    Browse hotels
-                  </Link>
+              <div className="flex flex-col gap-3 p-6 sm:flex-row sm:p-8">
+                <Link
+                  href="/hotels"
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink"
+                >
+                  Browse hotels
+                </Link>
 
-                  <Link
-                    href="/bookings/lookup"
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
-                  >
-                    Use booking lookup
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                <Link
+                  href="/bookings/lookup"
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-luxury-stone bg-white px-6 text-sm font-bold text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream"
+                >
+                  Use booking lookup
+                </Link>
+              </div>
+            </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               {data.bookings.map((booking) => {
                 const remaining = getRemainingAmount(booking);
                 const canPay =
@@ -136,9 +145,12 @@ export default async function GuestBookingsPage() {
                   );
 
                 return (
-                  <Card key={booking.reservationNumber}>
-                    <CardHeader>
-                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                  <article
+                    key={booking.reservationNumber}
+                    className="overflow-hidden rounded-[2rem] border border-luxury-stone bg-white shadow-xl shadow-slate-900/5"
+                  >
+                    <div className="border-b border-luxury-stone p-6 sm:p-8">
+                      <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge
@@ -156,21 +168,21 @@ export default async function GuestBookingsPage() {
                             )}
                           </div>
 
-                          <h2 className="mt-3 break-all text-xl font-bold text-foreground">
+                          <h2 className="mt-4 break-all text-2xl font-black tracking-tight text-luxury-ink">
                             {booking.reservationNumber}
                           </h2>
 
-                          <p className="mt-1 text-sm text-muted-foreground">
+                          <p className="mt-2 text-sm leading-6 text-slate-600">
                             {booking.hotel?.name || "Hotel booking"} ·{" "}
                             {formatDate(booking.checkInDate)} →{" "}
                             {formatDate(booking.checkOutDate)}
                           </p>
                         </div>
 
-                        <div className="flex flex-col gap-2 sm:items-end">
+                        <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-end">
                           <Link
                             href={`/bookings/${booking.reservationNumber}`}
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
+                            className="inline-flex h-12 items-center justify-center rounded-full border border-luxury-stone bg-white px-6 text-sm font-bold text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream"
                           >
                             View details
                           </Link>
@@ -178,40 +190,47 @@ export default async function GuestBookingsPage() {
                           {canPay ? (
                             <Link
                               href={`/bookings/${booking.reservationNumber}/pay`}
-                              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary-hover"
+                              className="inline-flex h-12 items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink"
                             >
                               Pay booking
                             </Link>
                           ) : null}
                         </div>
                       </div>
-                    </CardHeader>
+                    </div>
 
-                    <CardContent>
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-xl bg-surface-muted px-4 py-3">
-                          <p className="text-xs text-muted-foreground">Guest</p>
-                          <p className="mt-1 text-sm font-bold text-foreground">
-                            {booking.guestFirstName} {booking.guestLastName}
-                          </p>
-                        </div>
+                    <div className="grid gap-4 p-6 sm:grid-cols-3 sm:p-8">
+                      <div className="rounded-3xl border border-luxury-stone bg-luxury-cream p-5">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                          Guest
+                        </p>
 
-                        <div className="rounded-xl bg-surface-muted px-4 py-3">
-                          <p className="text-xs text-muted-foreground">Rooms</p>
-                          <p className="mt-1 text-sm font-bold text-foreground">
-                            {booking.rooms.length}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl bg-surface-muted px-4 py-3">
-                          <p className="text-xs text-muted-foreground">Total</p>
-                          <p className="mt-1 text-sm font-bold text-foreground">
-                            {formatMoney(booking.total, booking.currency)}
-                          </p>
-                        </div>
+                        <p className="mt-2 text-sm font-black text-luxury-ink">
+                          {booking.guestFirstName} {booking.guestLastName}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
+
+                      <div className="rounded-3xl border border-luxury-stone bg-luxury-cream p-5">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                          Rooms
+                        </p>
+
+                        <p className="mt-2 text-sm font-black text-luxury-ink">
+                          {booking.rooms.length}
+                        </p>
+                      </div>
+
+                      <div className="rounded-3xl border border-luxury-stone bg-luxury-cream p-5">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                          Total
+                        </p>
+
+                        <p className="mt-2 text-sm font-black text-luxury-ink">
+                          {formatMoney(booking.total, booking.currency)}
+                        </p>
+                      </div>
+                    </div>
+                  </article>
                 );
               })}
             </div>

@@ -5,6 +5,7 @@ import { HotelRoomsAvailability } from "@/components/public/HotelRoomsAvailabili
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { Badge } from "@/components/ui/Badge";
+import { HotelSubnav } from "@/components/public/HotelSubnav";
 import type {
     PublicHotelDetailResponse,
     PublicRoomType,
@@ -121,10 +122,11 @@ export default async function HotelDetailsPage({
     const featuredRoomTypes = roomTypes.slice(0, 3);
 
     return (
-        <div className="min-h-screen bg-luxury-cream text-luxury-ink">
+        <div className="flex min-h-screen flex-col bg-luxury-cream text-luxury-ink">
             <PublicHeader />
+            <HotelSubnav hotelSlug={hotel.slug} active="overview" />
 
-            <main>
+            <main className="flex-1">
                 <section className="relative overflow-hidden border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#fbf7ef_34%,#ffffff_76%)]">
                     <div className="absolute left-0 top-0 h-56 w-56 rounded-full bg-luxury-gold/10 blur-3xl" />
                     <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-luxury-navy/10 blur-3xl" />

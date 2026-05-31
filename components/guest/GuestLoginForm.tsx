@@ -1,11 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { LoginResponse } from "@/lib/frontend/types";
 
@@ -50,44 +48,58 @@ export function GuestLoginForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="grid gap-5" onSubmit={handleSubmit}>
       {error ? (
-        <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
+        <div className="rounded-3xl border border-danger-soft bg-danger-soft px-5 py-4 text-sm font-bold text-danger">
           {error}
         </div>
       ) : null}
 
-      <Input
-        label="Email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        required
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        placeholder="guest@example.com"
-      />
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-luxury-ink">
+          Email
+        </span>
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="guest@example.com"
+          className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
+        />
+      </label>
 
-      <Input
-        label="Password"
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        placeholder="Enter your password"
-      />
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-luxury-ink">
+          Password
+        </span>
+        <input
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder="Enter your password"
+          className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
+        />
+      </label>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="inline-flex h-12 w-full items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink disabled:opacity-60"
+      >
         {isSubmitting ? "Signing in..." : "Sign in"}
-      </Button>
+      </button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-slate-600">
         New guest?{" "}
         <Link
           href={`/guest/register?next=${encodeURIComponent(next)}`}
-          className="font-bold text-primary"
+          className="font-black text-luxury-gold transition hover:text-luxury-ink"
         >
           Create account
         </Link>

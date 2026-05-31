@@ -2,8 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import type { PublicBookingLookupResponse } from "@/lib/frontend/types";
 
 type LookupFormState = {
@@ -86,38 +84,55 @@ export function BookingLookupForm() {
     }
   }
 
+  const inputClassName =
+    "h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft";
+
   return (
-    <form className="grid gap-4" onSubmit={lookupBooking}>
+    <form className="grid gap-5" onSubmit={lookupBooking}>
       {error ? (
-        <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
+        <div className="rounded-3xl border border-danger-soft bg-danger-soft px-5 py-4 text-sm font-bold text-danger">
           {error}
         </div>
       ) : null}
 
-      <Input
-        label="Reservation Number"
-        name="reservationNumber"
-        value={form.reservationNumber}
-        onChange={(event) =>
-          updateForm("reservationNumber", event.target.value)
-        }
-        placeholder="RSV-20260524-ABC123"
-        required
-      />
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-luxury-ink">
+          Reservation number
+        </span>
+        <input
+          name="reservationNumber"
+          value={form.reservationNumber}
+          onChange={(event) =>
+            updateForm("reservationNumber", event.target.value)
+          }
+          placeholder="RSV-20260524-ABC123"
+          required
+          className={inputClassName}
+        />
+      </label>
 
-      <Input
-        label="Guest Email"
-        name="guestEmail"
-        type="email"
-        value={form.guestEmail}
-        onChange={(event) => updateForm("guestEmail", event.target.value)}
-        placeholder="guest@example.com"
-        required
-      />
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-luxury-ink">
+          Guest email
+        </span>
+        <input
+          name="guestEmail"
+          type="email"
+          value={form.guestEmail}
+          onChange={(event) => updateForm("guestEmail", event.target.value)}
+          placeholder="guest@example.com"
+          required
+          className={inputClassName}
+        />
+      </label>
 
-      <Button type="submit" className="h-11" disabled={isSearching}>
+      <button
+        type="submit"
+        disabled={isSearching}
+        className="inline-flex h-12 items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink disabled:opacity-60"
+      >
         {isSearching ? "Searching..." : "Find booking"}
-      </Button>
+      </button>
     </form>
   );
 }

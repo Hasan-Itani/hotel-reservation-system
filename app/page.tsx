@@ -1,65 +1,273 @@
-import Image from "next/image";
+import Link from "next/link";
+import { headers } from "next/headers";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
+import type { PublicHotelsResponse } from "@/lib/frontend/types";
 
-export default function Home() {
+async function getBaseUrl() {
+  const headerStore = await headers();
+  const host = headerStore.get("host");
+
+  if (!host) {
+    throw new Error("Unable to resolve host");
+  }
+
+  const protocol =
+    headerStore.get("x-forwarded-proto") ||
+    (process.env.NODE_ENV === "production" ? "https" : "http");
+
+  return `${protocol}://${host}`;
+}
+
+async function getPublicHotels() {
+  const baseUrl = await getBaseUrl();
+
+  const response = await fetch(`${baseUrl}/api/public/hotels`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = (await response.json()) as PublicHotelsResponse;
+  return data.hotels;
+}
+
+function formatPrice(price: number | null, currency: string) {
+  if (price === null) {
+    return "Price unavailable";
+  }
+
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency,
+  }).format(price);
+}
+
+export default async function HomePage() {
+  const hotels = await getPublicHotels();
+  const featuredHotels = hotels.slice(0, 3);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-background">
+      <PublicHeader />
+
+      <main>
+        <section className="relative overflow-hidden border-b border-border bg-slate-950">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(29,78,216,0.45),_transparent_35%),linear-gradient(135deg,_#020617,_#0f172a_45%,_#1e3a8a)]" />
+
+          <div className="relative mx-auto grid min-h-[520px] max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+            <div>
+              <Badge variant="primary">Hotel booking platform</Badge>
+
+              <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                Find the right hotel stay with fast booking and clear prices.
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+                Browse hotels, compare room types, check availability, and reserve
+                your stay through a clean guest booking experience.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/hotels"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-bold text-slate-950 transition hover:bg-slate-100"
+                >
+                  Browse Hotels
+                </Link>
+
+                <Link
+                  href="/bookings/lookup"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-white/20 px-5 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  Find My Booking
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 shadow-2xl backdrop-blur">
+              <div className="rounded-[1.5rem] bg-white p-5">
+                <p className="text-sm font-bold text-foreground">
+                  Search your stay
+                </p>
+
+                <div className="mt-4 grid gap-3">
+                  <div className="rounded-xl border border-border px-4 py-3">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">
+                      Destination
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      Beirut, Byblos, Zahle
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border px-4 py-3">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                        Check-in
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">
+                        Select date
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-border px-4 py-3">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                        Check-out
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">
+                        Select date
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/hotels"
+                    className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-hover"
+                  >
+                    Start Searching
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                Featured Hotels
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Choose from available hotels and continue to room selection.
+              </p>
+            </div>
+
+            <Link
+              href="/hotels"
+              className="text-sm font-bold text-primary hover:text-primary-hover"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              View all hotels
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {featuredHotels.length === 0 ? (
+              <Card className="md:col-span-2 xl:col-span-3">
+                <CardContent>
+                  <p className="text-sm font-semibold text-foreground">
+                    No public hotels available yet.
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add hotels and room types from the admin panel first.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              featuredHotels.map((hotel) => (
+                <Link
+                  key={hotel.id}
+                  href={`/hotels/${hotel.slug}`}
+                  className="group overflow-hidden rounded-card border border-border bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+                >
+                  <div className="flex h-48 items-center justify-center bg-slate-200">
+                    {hotel.primaryImage ? (
+                      <img
+                        src={hotel.primaryImage.url}
+                        alt={hotel.primaryImage.altText || hotel.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="px-6 text-center">
+                        <p className="text-sm font-bold text-slate-600">
+                          Hotel Image
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Add room type images later
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground group-hover:text-primary">
+                          {hotel.name}
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {hotel.city}, {hotel.country}
+                        </p>
+                      </div>
+
+                      {hotel.starRating ? (
+                        <Badge variant="warning">{hotel.starRating} stars</Badge>
+                      ) : null}
+                    </div>
+
+                    <p className="mt-4 line-clamp-2 text-sm text-muted-foreground">
+                      {hotel.description || "Comfortable rooms and hotel services."}
+                    </p>
+
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Starting from
+                        </p>
+                        <p className="text-base font-bold text-foreground">
+                          {formatPrice(hotel.startingPrice, hotel.currency)}
+                        </p>
+                      </div>
+
+                      <span className="text-sm font-bold text-primary">
+                        View hotel
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="border-y border-border bg-white">
+          <div className="mx-auto grid max-w-7xl gap-5 px-4 py-14 sm:px-6 md:grid-cols-3 lg:px-8">
+            {[
+              {
+                title: "Search availability",
+                text: "Find available rooms by date, guest count, and hotel.",
+              },
+              {
+                title: "Book with clear pricing",
+                text: "See room prices, guest capacity, taxes, and total before confirming.",
+              },
+              {
+                title: "Manage your stay",
+                text: "Guests can later lookup reservations and complete payments.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-card border border-border bg-surface p-5 shadow-sm"
+              >
+                <h3 className="text-base font-bold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {item.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

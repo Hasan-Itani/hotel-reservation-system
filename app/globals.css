@@ -24,6 +24,13 @@
   --danger: #b91c1c;
   --danger-soft: #fee2e2;
 
+  --luxury-navy: #07111f;
+  --luxury-ink: #0b1220;
+  --luxury-gold: #b88a44;
+  --luxury-gold-soft: #f7ead6;
+  --luxury-cream: #fbf7ef;
+  --luxury-stone: #e8ded0;
+
   --radius-card: 1rem;
 }
 
@@ -51,6 +58,13 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
 
+  --color-luxury-navy: var(--luxury-navy);
+  --color-luxury-ink: var(--luxury-ink);
+  --color-luxury-gold: var(--luxury-gold);
+  --color-luxury-gold-soft: var(--luxury-gold-soft);
+  --color-luxury-cream: var(--luxury-cream);
+  --color-luxury-stone: var(--luxury-stone);
+
   --radius-card: var(--radius-card);
 
   --font-sans: var(--font-geist-sans);
@@ -64,7 +78,8 @@
 html {
   min-height: 100%;
   background: var(--background);
-   overflow-x: hidden;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -72,10 +87,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-   overflow-x: hidden;
+  overflow-x: hidden;
 }
-
-
 
 button,
 input,
@@ -93,6 +106,25 @@ button:disabled {
 }
 
 ::selection {
-  background: var(--primary-soft);
+  background: var(--luxury-gold-soft);
   color: var(--foreground);
+}
+
+.luxury-container {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .luxury-container {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .luxury-container {
+    padding-inline: 2rem;
+  }
 }

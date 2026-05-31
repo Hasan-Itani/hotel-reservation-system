@@ -5,38 +5,44 @@ export async function PublicHeader() {
   const user = await getServerAuthUser();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
-      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-black/5 bg-white/90 backdrop-blur-xl">
+      <div className="luxury-container flex min-h-20 items-center justify-between gap-4">
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-base font-bold text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-luxury-navy text-base font-bold text-white shadow-sm">
             H
           </div>
 
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-foreground">
+            <p className="truncate text-sm font-bold tracking-wide text-luxury-ink">
               Hotel System
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              Book your stay
+              Premium stays, simple booking
             </p>
           </div>
         </Link>
 
-        <nav className="flex shrink-0 items-center gap-4 text-sm font-medium text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">
+        <nav className="flex shrink-0 items-center gap-3 text-sm font-semibold text-slate-600 sm:gap-6">
+          <Link href="/" className="hidden transition hover:text-luxury-ink sm:inline">
             Home
           </Link>
 
-          <Link href="/hotels" className="hover:text-foreground">
+          <Link href="/hotels" className="transition hover:text-luxury-ink">
             Hotels
           </Link>
 
           {user ? (
-            <Link href="/guest/account" className="hover:text-foreground">
+            <Link
+              href="/guest/account"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-luxury-stone bg-white px-4 text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream"
+            >
               Account
             </Link>
           ) : (
-            <Link href="/guest/login" className="hover:text-foreground">
+            <Link
+              href="/guest/login"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-luxury-stone bg-white px-4 text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream"
+            >
               Sign in
             </Link>
           )}

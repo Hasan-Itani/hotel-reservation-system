@@ -6,6 +6,8 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { HotelSubnav } from "@/components/public/HotelSubnav";
 import { Badge } from "@/components/ui/Badge";
 import type { PublicHotelDetailResponse } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
 
 type HotelLocationPageProps = {
   params: Promise<{
@@ -45,6 +47,20 @@ async function getHotel(slug: string) {
 
   const data = (await response.json()) as PublicHotelDetailResponse;
   return data.hotel;
+}
+
+export async function generateMetadata({
+  params,
+}: HotelLocationPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const hotel = await getHotel(slug);
+
+  return buildHotelMetadata({
+    hotel,
+    pageTitle: "Location",
+    description: `Find ${hotel.name} in ${hotel.city}, ${hotel.country}. View address, map, and contact details.`,
+    path: `/hotels/${hotel.slug}/location`,
+  });
 }
 
 function getFullAddress(input: {

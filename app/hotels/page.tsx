@@ -6,6 +6,13 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import type { PublicHotelsResponse } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Hotels",
+  description:
+    "Browse available hotels, compare stays, view rooms, and check live availability.",
+};
 
 async function getBaseUrl() {
   const headerStore = await headers();

@@ -7,6 +7,8 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { HotelSubnav } from "@/components/public/HotelSubnav";
 import { Badge } from "@/components/ui/Badge";
 import type { PublicHotelDetailResponse } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
 
 type HotelAmenitiesPageProps = {
   params: Promise<{
@@ -104,6 +106,20 @@ async function getHotel(slug: string) {
 
   const data = (await response.json()) as PublicHotelDetailResponse;
   return data.hotel;
+}
+
+export async function generateMetadata({
+  params,
+}: HotelAmenitiesPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const hotel = await getHotel(slug);
+
+  return buildHotelMetadata({
+    hotel,
+    pageTitle: "Amenities",
+    description: `View services, amenities, wellness spaces, leisure areas, and guest facilities at ${hotel.name}.`,
+    path: `/hotels/${hotel.slug}/amenities`,
+  });
 }
 
 export default async function HotelAmenitiesPage({

@@ -9,6 +9,8 @@ import type {
   PublicHotelDetailResponse,
   PublicRoomTypesResponse,
 } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
 
 type BookingPageProps = {
   params: Promise<{

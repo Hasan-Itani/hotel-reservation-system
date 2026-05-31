@@ -11,6 +11,8 @@ import {
 } from "@/components/public/HotelDiningCarousel";
 import { Badge } from "@/components/ui/Badge";
 import type { PublicHotelDetailResponse } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
 
 type HotelDiningPageProps = {
   params: Promise<{
@@ -158,6 +160,20 @@ async function getHotel(slug: string) {
 
   const data = (await response.json()) as PublicHotelDetailResponse;
   return data.hotel;
+}
+
+export async function generateMetadata({
+  params,
+}: HotelDiningPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const hotel = await getHotel(slug);
+
+  return buildHotelMetadata({
+    hotel,
+    pageTitle: "Dining",
+    description: `Explore restaurants, bars, lounges, dining venues, and hotel dining experiences at ${hotel.name}.`,
+    path: `/hotels/${hotel.slug}/dining`,
+  });
 }
 
 export default async function HotelDiningPage({ params }: HotelDiningPageProps) {

@@ -13,8 +13,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hotel Admin",
-  description: "Hotel reservation management system",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  ),
+  title: {
+    default: "Hotel System",
+    template: "%s | Hotel System",
+  },
+  description:
+    "Browse hotels, check live availability, book rooms, manage reservations, and complete payments.",
+  openGraph: {
+    title: "Hotel System",
+    description:
+      "Browse hotels, check live availability, book rooms, manage reservations, and complete payments.",
+    type: "website",
+    siteName: "Hotel System",
+  },
 };
 
 export default function RootLayout({

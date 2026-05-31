@@ -11,6 +11,8 @@ import type {
   PublicRoomType,
   PublicRoomTypesResponse,
 } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
 
 type HotelRoomsPageProps = {
   params: Promise<{
@@ -50,6 +52,20 @@ async function getHotel(slug: string) {
 
   const data = (await response.json()) as PublicHotelDetailResponse;
   return data.hotel;
+}
+
+export async function generateMetadata({
+  params,
+}: HotelRoomsPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const hotel = await getHotel(slug);
+
+  return buildHotelMetadata({
+    hotel,
+    pageTitle: "Rooms and Suites",
+    description: `View rooms and suites at ${hotel.name}, including capacity, beds, room details, prices, and availability.`,
+    path: `/hotels/${hotel.slug}/rooms`,
+  });
 }
 
 async function getRoomTypes(slug: string) {

@@ -7,6 +7,8 @@ import { HotelSubnav } from "@/components/public/HotelSubnav";
 import { Badge } from "@/components/ui/Badge";
 import type { PublicHotelDetailResponse } from "@/lib/frontend/types";
 import { HotelContactForm } from "@/components/public/HotelContactForm";
+import type { Metadata } from "next";
+import { buildHotelMetadata } from "@/lib/frontend/public-metadata";
 
 type HotelContactPageProps = {
   params: Promise<{
@@ -46,6 +48,20 @@ async function getHotel(slug: string) {
 
   const data = (await response.json()) as PublicHotelDetailResponse;
   return data.hotel;
+}
+
+export async function generateMetadata({
+  params,
+}: HotelContactPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const hotel = await getHotel(slug);
+
+  return buildHotelMetadata({
+    hotel,
+    pageTitle: "Contact",
+    description: `Contact ${hotel.name} for booking questions, reservation support, directions, and hotel inquiries.`,
+    path: `/hotels/${hotel.slug}/contact`,
+  });
 }
 
 function getFullAddress(input: {

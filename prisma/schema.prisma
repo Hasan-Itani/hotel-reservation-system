@@ -73,6 +73,7 @@ model Hotel {
   reservations  Reservation[]
   rooms         Room[]
   roomTypes     RoomType[]
+  inquiries     HotelInquiry[]
   UserHotelRole UserHotelRole[]
 
   @@index([city, country])
@@ -240,6 +241,46 @@ model Payment {
   @@index([paidAt])
   @@index([reservationId])
   @@index([status])
+}
+
+model HotelInquiry {
+  id          String             @id @default(uuid())
+  hotelId     String
+  guestName   String
+  guestEmail  String
+  guestPhone  String?
+  inquiryType HotelInquiryType   @default(GENERAL)
+  subject     String
+  message     String
+  status      HotelInquiryStatus @default(NEW)
+  adminNote   String?
+  readAt      DateTime?
+  repliedAt   DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  hotel       Hotel              @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@index([hotelId, status, createdAt])
+  @@index([guestEmail])
+  @@index([createdAt])
+}
+
+enum HotelInquiryType {
+  GENERAL
+  RESERVATION
+  PAYMENT
+  DINING
+  EVENT
+  OTHER
+}
+
+enum HotelInquiryStatus {
+  NEW
+  READ
+  REPLIED
+  ARCHIVED
 }
 
 enum PaymentProvider {

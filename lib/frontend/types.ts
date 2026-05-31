@@ -209,6 +209,65 @@ export type ReservationStatusAction =
   | "CHECK_OUT"
   | "NO_SHOW";
 
+export type HotelInquiryType =
+  | "GENERAL"
+  | "RESERVATION"
+  | "PAYMENT"
+  | "DINING"
+  | "EVENT"
+  | "OTHER";
+
+export type HotelInquiryStatus = "NEW" | "READ" | "REPLIED" | "ARCHIVED";
+
+export type PublicHotelInquiryCreateResponse = {
+  message: string;
+  inquiry: {
+    id: string;
+    hotelId: string;
+    guestName: string;
+    guestEmail: string;
+    guestPhone: string | null;
+    inquiryType: HotelInquiryType;
+    subject: string;
+    message: string;
+    status: HotelInquiryStatus;
+    createdAt: string;
+  };
+};
+
+export type AdminHotelInquiryItem = {
+  id: string;
+  hotelId: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string | null;
+  inquiryType: HotelInquiryType;
+  subject: string;
+  message: string;
+  status: HotelInquiryStatus;
+  adminNote: string | null;
+  readAt: string | null;
+  repliedAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  hotel: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+export type AdminHotelInquiriesResponse = {
+  hotelId: string;
+  inquiries: AdminHotelInquiryItem[];
+};
+
+export type AdminHotelInquiryUpdateResponse = {
+  message: string;
+  inquiry: AdminHotelInquiryItem;
+};
+
 export type ReservationRoom = {
   id: string;
   roomId: string | null;

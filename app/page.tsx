@@ -57,24 +57,37 @@ export default async function HomePage() {
 
       <main className="flex-1">
         <section className="relative overflow-hidden bg-luxury-navy">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(184,138,68,0.35),transparent_30%),linear-gradient(135deg,#07111f_0%,#0b1220_45%,#13223a_100%)]" />
-          <div className="absolute left-1/2 top-0 size-96 -translate-x-1/2 rounded-full bg-luxury-gold/10 blur-3xl" />
-          <div className="absolute bottom-0 right-0 size-80 rounded-full bg-white/5 blur-3xl" />
+          <div className="relative h-[72vh] min-h-[520px] max-h-[820px]">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover"
+            >
+              <source src="/videos/hotel-hero.webm" type="video/webm" />
+            </video>
 
-          <div className="luxury-container relative grid min-h-[720px] items-center gap-12 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+            <div className="absolute inset-0 bg-black/15" />
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-luxury-navy to-transparent" />
+          </div>
+        </section>
+
+        <section className="bg-luxury-navy text-white">
+          <div className="luxury-container grid gap-12 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-luxury-gold-soft backdrop-blur">
                 Luxury booking platform
               </div>
 
               <h1 className="mt-7 max-w-4xl text-5xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl">
-                Premium hotel stays, designed around a cleaner booking
-                experience.
+                Premium hotel stays, designed around a cleaner booking experience.
               </h1>
 
               <p className="mt-6 max-w-2xl text-base leading-8 text-white/70 sm:text-lg">
-                Explore hotels, compare rooms, check live availability, reserve
-                your stay, and manage payments from one polished guest account.
+                Explore hotels, compare rooms, check live availability, reserve your
+                stay, and manage payments from one polished guest account.
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">

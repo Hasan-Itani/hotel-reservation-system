@@ -76,6 +76,12 @@ export function AdminShell({ user, hotels, children }: AdminShellProps) {
         selectedHotelId.length > 0 && canViewGuests(user, selectedHotelId),
     },
     {
+      href: "/admin/inquiries",
+      label: "Inquiries",
+      allowed:
+        selectedHotelId.length > 0 && canViewGuests(user, selectedHotelId),
+    },
+    {
       href: "/admin/payments",
       label: "Payments",
       allowed:

@@ -36,6 +36,12 @@ type ReservationsClientProps = {
 
 type RoomAssignments = Record<string, string>;
 
+type PendingReservationAction = {
+  reservation: Reservation;
+  action: ReservationStatusAction;
+  cancellationReason: string;
+};
+
 const reservationStatuses: Array<ReservationStatus | ""> = [
   "",
   "PENDING",
@@ -151,6 +157,8 @@ export function ReservationsClient({
   const [actionLoading, setActionLoading] = useState("");
   const [checkInReservationId, setCheckInReservationId] = useState("");
   const [roomAssignments, setRoomAssignments] = useState<RoomAssignments>({});
+  const [pendingReservationAction, setPendingReservationAction] =
+    useState<PendingReservationAction | null>(null);
 
   useEffect(() => {
     setReservations(initialReservations);
@@ -170,6 +178,7 @@ export function ReservationsClient({
 
     setCheckInReservationId("");
     setRoomAssignments({});
+    setPendingReservationAction(null);
     setError("");
   }, [initialReservations, initialFilters]);
 
@@ -279,35 +288,31 @@ export function ReservationsClient({
     }
 
     setError("");
+    setPendingReservationAction(null);
     setCheckInReservationId(reservation.id);
     setRoomAssignments(nextAssignments);
+  }
+
+  function requestSimpleAction(
+    reservation: Reservation,
+    action: ReservationStatusAction,
+  ) {
+    setError("");
+    setCheckInReservationId("");
+    setRoomAssignments({});
+    setPendingReservationAction({
+      reservation,
+      action,
+      cancellationReason: "",
+    });
   }
 
   async function runSimpleAction(
     reservation: Reservation,
     action: ReservationStatusAction,
+    cancellationReason = "",
   ) {
     setError("");
-
-    let cancellationReason: string | null = null;
-
-    if (action === "CANCEL") {
-      cancellationReason = window.prompt(
-        "Cancellation reason. Leave empty if not needed.",
-      );
-
-      if (cancellationReason === null) {
-        return;
-      }
-    }
-
-    const confirmed = window.confirm(
-      `Apply "${getActionLabel(action)}" to reservation ${reservation.reservationNumber}?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
 
     setActionLoading(`${reservation.id}:${action}`);
 
@@ -317,7 +322,7 @@ export function ReservationsClient({
       };
 
       if (action === "CANCEL") {
-        body.cancellationReason = cancellationReason || null;
+        body.cancellationReason = cancellationReason.trim() || null;
       }
 
       const data = await clientFetchJson<ReservationResponse>(
@@ -329,6 +334,7 @@ export function ReservationsClient({
       );
 
       replaceReservation(data.reservation);
+      setPendingReservationAction(null);
       router.refresh();
     } catch (caughtError: unknown) {
       if (caughtError instanceof FrontendApiError) {
@@ -354,14 +360,6 @@ export function ReservationsClient({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Check in reservation ${reservation.reservationNumber}?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setActionLoading(`${reservation.id}:CHECK_IN`);
 
     try {
@@ -379,6 +377,7 @@ export function ReservationsClient({
       replaceReservation(data.reservation);
       setCheckInReservationId("");
       setRoomAssignments({});
+      setPendingReservationAction(null);
       router.refresh();
     } catch (caughtError: unknown) {
       if (caughtError instanceof FrontendApiError) {
@@ -858,6 +857,87 @@ export function ReservationsClient({
                       Status Actions
                     </p>
 
+                    {pendingReservationAction?.reservation.id ===
+                    selectedReservation.id ? (
+                      <div className="mb-4 rounded-xl border border-warning-soft bg-warning-soft/50 p-4">
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-foreground">
+                              Apply{" "}
+                              {getActionLabel(pendingReservationAction.action)}{" "}
+                              to reservation{" "}
+                              {
+                                pendingReservationAction.reservation
+                                  .reservationNumber
+                              }
+                              ?
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              This updates the reservation status immediately.
+                            </p>
+                          </div>
+
+                          <div className="flex shrink-0 gap-2">
+                            <Button
+                              variant="secondary"
+                              onClick={() => setPendingReservationAction(null)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant={getActionVariant(
+                                pendingReservationAction.action,
+                              )}
+                              onClick={() =>
+                                runSimpleAction(
+                                  pendingReservationAction.reservation,
+                                  pendingReservationAction.action,
+                                  pendingReservationAction.cancellationReason,
+                                )
+                              }
+                              disabled={
+                                actionLoading ===
+                                `${pendingReservationAction.reservation.id}:${pendingReservationAction.action}`
+                              }
+                            >
+                              {actionLoading ===
+                              `${pendingReservationAction.reservation.id}:${pendingReservationAction.action}`
+                                ? "Working..."
+                                : getActionLabel(
+                                    pendingReservationAction.action,
+                                  )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {pendingReservationAction.action === "CANCEL" ? (
+                          <label className="mt-4 block">
+                            <span className="mb-2 block text-sm font-medium text-foreground">
+                              Cancellation reason
+                            </span>
+                            <textarea
+                              value={
+                                pendingReservationAction.cancellationReason
+                              }
+                              onChange={(event) =>
+                                setPendingReservationAction((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        cancellationReason:
+                                          event.target.value,
+                                      }
+                                    : current,
+                                )
+                              }
+                              placeholder="Optional internal cancellation reason"
+                              className="min-h-24 w-full rounded-xl border border-border bg-white px-3 py-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted focus:border-primary focus:ring-4 focus:ring-primary-soft"
+                            />
+                          </label>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     <div className="flex flex-wrap gap-2">
                       {getAllowedActions(selectedReservation.status).length ===
                       0 ? (
@@ -883,7 +963,10 @@ export function ReservationsClient({
                                 key={action}
                                 variant={getActionVariant(action)}
                                 onClick={() =>
-                                  runSimpleAction(selectedReservation, action)
+                                  requestSimpleAction(
+                                    selectedReservation,
+                                    action,
+                                  )
                                 }
                                 disabled={
                                   actionLoading ===

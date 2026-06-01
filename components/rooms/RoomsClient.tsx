@@ -116,6 +116,7 @@ export function RoomsClient({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [pendingDeleteRoom, setPendingDeleteRoom] = useState<Room | null>(null);
 
   const isEditing = !!form.id;
 
@@ -276,14 +277,6 @@ export function RoomsClient({
   }
 
   async function deleteRoom(room: Room) {
-    const confirmed = window.confirm(
-      `Delete room "${room.roomNumber}"? This will fail if the room is not AVAILABLE or has reservation history.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setDeletingId(room.id);
     setError("");
 
@@ -296,6 +289,7 @@ export function RoomsClient({
       );
 
       setRooms((current) => current.filter((item) => item.id !== room.id));
+      setPendingDeleteRoom(null);
       router.refresh();
     } catch (caughtError: unknown) {
       if (caughtError instanceof FrontendApiError) {
@@ -336,6 +330,42 @@ export function RoomsClient({
         <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
           {error}
         </div>
+      ) : null}
+
+      {pendingDeleteRoom ? (
+        <Card className="border-danger-soft bg-danger-soft/50">
+          <CardContent>
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  Delete room {pendingDeleteRoom.roomNumber}?
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This will fail if the room is not AVAILABLE or has reservation
+                  history.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setPendingDeleteRoom(null)}
+                >
+                  Keep room
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => deleteRoom(pendingDeleteRoom)}
+                  disabled={deletingId === pendingDeleteRoom.id}
+                >
+                  {deletingId === pendingDeleteRoom.id
+                    ? "Deleting..."
+                    : "Delete room"}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       {isFormOpen ? (
@@ -582,7 +612,7 @@ export function RoomsClient({
 
                             <Button
                               variant="danger"
-                              onClick={() => deleteRoom(room)}
+                              onClick={() => setPendingDeleteRoom(room)}
                               disabled={deletingId === room.id || !canDelete}
                               title={
                                 canDelete

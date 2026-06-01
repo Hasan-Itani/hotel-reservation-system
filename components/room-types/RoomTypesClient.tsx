@@ -99,6 +99,8 @@ export function RoomTypesClient({
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState("");
+    const [pendingDeleteRoomType, setPendingDeleteRoomType] =
+        useState<RoomType | null>(null);
     const formRef = useRef<HTMLDivElement | null>(null);
     const isEditing = !!form.id;
 
@@ -245,14 +247,6 @@ export function RoomTypesClient({
     }
 
     async function deleteRoomType(roomType: RoomType) {
-        const confirmed = window.confirm(
-            `Delete "${roomType.name}"? This will fail if rooms or reservations still use it.`
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
         setDeletingId(roomType.id);
         setError("");
 
@@ -267,6 +261,7 @@ export function RoomTypesClient({
             setRoomTypes((current) =>
                 current.filter((item) => item.id !== roomType.id)
             );
+            setPendingDeleteRoomType(null);
 
             router.refresh();
         } catch (caughtError: unknown) {
@@ -300,6 +295,42 @@ export function RoomTypesClient({
                 <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
                     {error}
                 </div>
+            ) : null}
+
+            {pendingDeleteRoomType ? (
+                <Card className="border-danger-soft bg-danger-soft/50">
+                    <CardContent>
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                            <div>
+                                <p className="text-sm font-bold text-foreground">
+                                    Delete {pendingDeleteRoomType.name}?
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    This will fail if rooms or reservations still use this
+                                    room type.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setPendingDeleteRoomType(null)}
+                                >
+                                    Keep room type
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    onClick={() => deleteRoomType(pendingDeleteRoomType)}
+                                    disabled={deletingId === pendingDeleteRoomType.id}
+                                >
+                                    {deletingId === pendingDeleteRoomType.id
+                                        ? "Deleting..."
+                                        : "Delete room type"}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             ) : null}
 
             {isFormOpen ? (
@@ -552,7 +583,9 @@ export function RoomTypesClient({
 
                                                         <Button
                                                             variant="danger"
-                                                            onClick={() => deleteRoomType(roomType)}
+                                                            onClick={() =>
+                                                                setPendingDeleteRoomType(roomType)
+                                                            }
                                                             disabled={deletingId === roomType.id || isUsed}
                                                             title={
                                                                 isUsed

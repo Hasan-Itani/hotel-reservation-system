@@ -25,6 +25,11 @@ type PaymentsClientProps = {
   initialPaymentReservation: ReservationPaymentsResponse["reservation"] | null;
 };
 
+type PendingPaymentAction = {
+  payment: Payment;
+  action: PaymentStatusAction;
+};
+
 type PaymentFormState = {
   amount: string;
   cardHolderName: string;
@@ -173,6 +178,8 @@ export function PaymentsClient({
   const [isLoadingReservation, setIsLoadingReservation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
+  const [pendingPaymentAction, setPendingPaymentAction] =
+    useState<PendingPaymentAction | null>(null);
 
 
 
@@ -310,12 +317,6 @@ export function PaymentsClient({
   }
 
   async function updatePaymentStatus(payment: Payment, action: PaymentStatusAction) {
-    const confirmed = window.confirm(
-      `Apply "${getActionLabel(action)}" to this payment?`,
-    );
-
-    if (!confirmed) return;
-
     setError("");
     setActionLoading(`${payment.id}:${action}`);
 
@@ -340,6 +341,7 @@ export function PaymentsClient({
         };
       });
 
+      setPendingPaymentAction(null);
       router.refresh();
     } catch (caughtError: unknown) {
       if (caughtError instanceof FrontendApiError) {
@@ -371,6 +373,55 @@ export function PaymentsClient({
         <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
           {error}
         </div>
+      ) : null}
+
+      {pendingPaymentAction ? (
+        <Card className="border-warning-soft bg-warning-soft/50">
+          <CardContent>
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  Apply {getActionLabel(pendingPaymentAction.action)} to this
+                  payment?
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Amount:{" "}
+                  {formatMoney(
+                    pendingPaymentAction.payment.amount,
+                    pendingPaymentAction.payment.currency,
+                  )}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setPendingPaymentAction(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant={getActionVariant(pendingPaymentAction.action)}
+                  onClick={() =>
+                    updatePaymentStatus(
+                      pendingPaymentAction.payment,
+                      pendingPaymentAction.action,
+                    )
+                  }
+                  disabled={
+                    actionLoading ===
+                    `${pendingPaymentAction.payment.id}:${pendingPaymentAction.action}`
+                  }
+                >
+                  {actionLoading ===
+                  `${pendingPaymentAction.payment.id}:${pendingPaymentAction.action}`
+                    ? "Working..."
+                    : getActionLabel(pendingPaymentAction.action)}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)] xl:items-start">
@@ -681,7 +732,9 @@ export function PaymentsClient({
                                   <Button
                                     key={action}
                                     variant={getActionVariant(action)}
-                                    onClick={() => updatePaymentStatus(payment, action)}
+                                    onClick={() =>
+                                      setPendingPaymentAction({ payment, action })
+                                    }
                                     disabled={actionLoading === `${payment.id}:${action}`}
                                   >
                                     {actionLoading === `${payment.id}:${action}`

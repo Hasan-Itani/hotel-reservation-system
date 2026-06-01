@@ -88,6 +88,8 @@ export function StaffClient({
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [removingId, setRemovingId] = useState("");
+    const [pendingRemoveStaff, setPendingRemoveStaff] =
+        useState<StaffMember | null>(null);
 
     const isEditing = !!form.staffId;
     const currentUserIsSuperAdmin = isSuperAdmin(currentUser);
@@ -227,14 +229,6 @@ export function StaffClient({
     }
 
     async function removeStaffMember(staffMember: StaffMember) {
-        const confirmed = window.confirm(
-            `Remove ${staffMember.firstName} ${staffMember.lastName} from ${hotel.name}?`
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
         setRemovingId(staffMember.id);
         setError("");
 
@@ -247,6 +241,7 @@ export function StaffClient({
             );
 
             setStaff((current) => current.filter((item) => item.id !== staffMember.id));
+            setPendingRemoveStaff(null);
             router.refresh();
         } catch (caughtError: unknown) {
             if (caughtError instanceof FrontendApiError) {
@@ -283,6 +278,43 @@ export function StaffClient({
                 <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
                     {error}
                 </div>
+            ) : null}
+
+            {pendingRemoveStaff ? (
+                <Card className="border-danger-soft bg-danger-soft/50">
+                    <CardContent>
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                            <div>
+                                <p className="text-sm font-bold text-foreground">
+                                    Remove {pendingRemoveStaff.firstName}{" "}
+                                    {pendingRemoveStaff.lastName} from {hotel.name}?
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    This removes the hotel staff assignment. It does not
+                                    delete the user account.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setPendingRemoveStaff(null)}
+                                >
+                                    Keep staff
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    onClick={() => removeStaffMember(pendingRemoveStaff)}
+                                    disabled={removingId === pendingRemoveStaff.id}
+                                >
+                                    {removingId === pendingRemoveStaff.id
+                                        ? "Removing..."
+                                        : "Remove staff"}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             ) : null}
 
             {isFormOpen ? (
@@ -533,7 +565,9 @@ export function StaffClient({
 
                                                         <Button
                                                             variant="danger"
-                                                            onClick={() => removeStaffMember(staffMember)}
+                                                            onClick={() =>
+                                                                setPendingRemoveStaff(staffMember)
+                                                            }
                                                             disabled={
                                                                 removingId === staffMember.id || cannotModifySelf
                                                             }

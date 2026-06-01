@@ -2,22 +2,22 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
+import { useRouter } from "next/navigation";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { LoginResponse } from "@/lib/frontend/types";
 
-export function GuestLoginForm() {
+type GuestLoginFormProps = {
+  next: string;
+};
+
+export function GuestLoginForm({ next }: GuestLoginFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const next = getSafeRedirectPath(searchParams.get("next"));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -2,10 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { GuestRegisterResponse } from "@/lib/frontend/types";
-import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
 
 type RegisterFormState = {
   firstName: string;
@@ -25,15 +24,16 @@ const defaultForm: RegisterFormState = {
   confirmPassword: "",
 };
 
-export function GuestRegisterForm() {
+type GuestRegisterFormProps = {
+  next: string;
+};
+
+export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [form, setForm] = useState<RegisterFormState>(defaultForm);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const next = getSafeRedirectPath(searchParams.get("next"));
 
   function updateForm<Key extends keyof RegisterFormState>(
     key: Key,

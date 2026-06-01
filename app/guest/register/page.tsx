@@ -21,8 +21,7 @@ type GuestRegisterPageProps = {
 export default async function GuestRegisterPage({
   searchParams,
 }: GuestRegisterPageProps) {
-  const user = await getServerAuthUser();
-  const query = await searchParams;
+  const [user, query] = await Promise.all([getServerAuthUser(), searchParams]);
   const next = getSafeRedirectPath(query?.next);
 
   if (user) {
@@ -50,7 +49,7 @@ export default async function GuestRegisterPage({
           </div>
 
           <div className="p-6 sm:p-8">
-            <GuestRegisterForm />
+            <GuestRegisterForm next={next} />
           </div>
         </section>
       </main>

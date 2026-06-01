@@ -33,8 +33,7 @@ function resolveLoggedInRedirect(input: {
 export default async function GuestLoginPage({
   searchParams,
 }: GuestLoginPageProps) {
-  const user = await getServerAuthUser();
-  const query = await searchParams;
+  const [user, query] = await Promise.all([getServerAuthUser(), searchParams]);
   const next = getSafeRedirectPath(query?.next);
 
   if (user) {
@@ -67,7 +66,7 @@ export default async function GuestLoginPage({
           </div>
 
           <div className="p-6 sm:p-8">
-            <GuestLoginForm />
+            <GuestLoginForm next={next} />
           </div>
         </section>
       </main>

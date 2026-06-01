@@ -140,7 +140,7 @@ export default async function HotelRoomsPage({ params }: HotelRoomsPageProps) {
                 {hotel.name}
               </Link>
 
-              <Badge variant="primary">{hotel.city}</Badge>
+              <Badge variant="luxury">{hotel.city}</Badge>
 
               {hotel.starRating ? (
                 <Badge variant="warning">{hotel.starRating} stars</Badge>

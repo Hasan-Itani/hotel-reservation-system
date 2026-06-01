@@ -136,7 +136,7 @@ export default async function HotelsPage() {
               </p>
             </div>
 
-            <Badge variant="primary">
+            <Badge variant="luxury">
               {hotels.length} hotel{hotels.length === 1 ? "" : "s"}
             </Badge>
           </div>

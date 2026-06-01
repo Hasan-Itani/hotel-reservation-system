@@ -13,7 +13,7 @@ export default function BookingLookupPage() {
         <section className="border-b border-luxury-stone bg-[radial-gradient(circle_at_top_left,#f7ead6_0,#fbf7ef_38%,#ffffff_100%)]">
           <div className="luxury-container grid gap-10 py-10 lg:grid-cols-[1fr_430px] lg:items-center lg:py-16">
             <div>
-              <Badge variant="primary">My booking</Badge>
+              <Badge variant="luxury">My booking</Badge>
 
               <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight text-luxury-ink sm:text-5xl">
                 Find your reservation.

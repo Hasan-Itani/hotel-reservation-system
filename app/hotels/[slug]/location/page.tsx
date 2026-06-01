@@ -112,7 +112,7 @@ export default async function HotelLocationPage({
                 {hotel.name}
               </Link>
 
-              <Badge variant="primary">{hotel.city}</Badge>
+              <Badge variant="luxury">{hotel.city}</Badge>
 
               {hotel.starRating ? (
                 <Badge variant="warning">{hotel.starRating} stars</Badge>

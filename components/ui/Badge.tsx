@@ -1,6 +1,12 @@
 import type { HTMLAttributes } from "react";
 
-type BadgeVariant = "default" | "success" | "warning" | "danger" | "primary";
+type BadgeVariant =
+  | "default"
+  | "success"
+  | "warning"
+  | "danger"
+  | "primary"
+  | "luxury";
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   variant?: BadgeVariant;
@@ -12,6 +18,7 @@ const variants: Record<BadgeVariant, string> = {
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
   primary: "bg-primary-soft text-primary",
+  luxury: "border border-luxury-gold/30 bg-luxury-gold/10 text-luxury-ink",
 };
 
 export function Badge({

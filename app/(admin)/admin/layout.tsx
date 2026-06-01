@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
@@ -18,7 +19,7 @@ export default async function AdminLayout({
     return (
       <main className="flex min-h-screen items-center justify-center bg-luxury-cream px-4 text-luxury-ink">
         <div className="max-w-md rounded-[2rem] border border-luxury-stone bg-white p-6 text-center shadow-xl shadow-slate-900/5">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-luxury-navy text-base font-bold text-white">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-luxury-navy text-base font-bold text-white">
             H
           </div>
 
@@ -55,8 +56,12 @@ export default async function AdminLayout({
   const hotels = await getServerHotels();
 
   return (
-    <AdminShell user={user} hotels={hotels}>
-      {children}
-    </AdminShell>
+    <Suspense
+      fallback={<div className="min-h-screen bg-luxury-cream text-luxury-ink" />}
+    >
+      <AdminShell user={user} hotels={hotels}>
+        {children}
+      </AdminShell>
+    </Suspense>
   );
 }

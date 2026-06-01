@@ -13,6 +13,7 @@ type RegisterFormState = {
   email: string;
   phone: string;
   password: string;
+  confirmPassword: string;
 };
 
 const defaultForm: RegisterFormState = {
@@ -21,6 +22,7 @@ const defaultForm: RegisterFormState = {
   email: "",
   phone: "",
   password: "",
+  confirmPassword: "",
 };
 
 export function GuestRegisterForm() {
@@ -50,6 +52,11 @@ export function GuestRegisterForm() {
 
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
@@ -161,6 +168,24 @@ export function GuestRegisterForm() {
           value={form.password}
           onChange={(event) => updateForm("password", event.target.value)}
           placeholder="At least 8 characters"
+          required
+          className={inputClassName}
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-luxury-ink">
+          Confirm password
+        </span>
+        <input
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          value={form.confirmPassword}
+          onChange={(event) =>
+            updateForm("confirmPassword", event.target.value)
+          }
+          placeholder="Re-enter your password"
           required
           className={inputClassName}
         />

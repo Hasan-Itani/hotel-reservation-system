@@ -269,11 +269,6 @@ export function StaffClient({
                 <Button onClick={openCreateForm}>Assign Staff</Button>
             </section>
 
-            <div className="rounded-xl border border-warning-soft bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
-                MVP note: this creates a staff user with a temporary password. Later we should
-                add password reset emails and staff invitation links.
-            </div>
-
             {error ? (
                 <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
                     {error}

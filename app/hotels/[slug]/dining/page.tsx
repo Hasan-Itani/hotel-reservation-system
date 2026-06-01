@@ -310,6 +310,44 @@ export default async function HotelDiningPage({ params }: HotelDiningPageProps) 
             ))}
           </div>
         </section>
+
+        <section className="bg-luxury-navy text-white">
+          <div className="luxury-container grid gap-8 py-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-luxury-gold-soft">
+                Contact us
+              </p>
+
+              <h2 className="mt-4 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
+                Planning a dinner, event, or special request?
+              </h2>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-6 shadow-xl shadow-black/10 backdrop-blur sm:p-8">
+              <p className="text-sm leading-7 text-white/70">
+                Send the hotel team a message about restaurant availability,
+                private dining, dietary needs, or event details. The inquiry
+                will appear in the admin inquiries panel.
+              </p>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={`/hotels/${hotel.slug}/contact`}
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-bold text-luxury-navy shadow-sm transition hover:bg-luxury-gold-soft"
+                >
+                  Contact dining team
+                </Link>
+
+                <Link
+                  href={`/hotels/${hotel.slug}#availability`}
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  Check rooms
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <PublicFooter />

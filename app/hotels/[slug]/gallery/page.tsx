@@ -281,6 +281,44 @@ export default async function HotelGalleryPage({
         <section className="luxury-container py-10 lg:py-14">
           <HotelGallerySliders sections={sections} />
         </section>
+
+        <section className="bg-luxury-navy text-white">
+          <div className="luxury-container grid gap-8 py-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-luxury-gold-soft">
+                Contact us
+              </p>
+
+              <h2 className="mt-4 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
+                Want more details before booking?
+              </h2>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-6 shadow-xl shadow-black/10 backdrop-blur sm:p-8">
+              <p className="text-sm leading-7 text-white/70">
+                Ask the hotel team about rooms, amenities, dining, arrival
+                details, or special requests. Contact messages are saved for
+                staff in the admin inquiries panel.
+              </p>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={`/hotels/${hotel.slug}/contact`}
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-bold text-luxury-navy shadow-sm transition hover:bg-luxury-gold-soft"
+                >
+                  Contact hotel
+                </Link>
+
+                <Link
+                  href={`/hotels/${hotel.slug}/rooms`}
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  View rooms
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <PublicFooter />

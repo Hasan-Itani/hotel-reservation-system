@@ -367,6 +367,48 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section className="bg-luxury-navy text-white">
+          <div className="luxury-container grid gap-8 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-luxury-gold-soft">
+                Contact us
+              </p>
+
+              <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
+                Need help choosing a stay or checking a reservation?
+              </h2>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 p-6 shadow-xl shadow-black/10 backdrop-blur sm:p-8">
+              <p className="text-sm leading-7 text-white/70">
+                Use each hotel contact page for booking questions, arrival
+                details, directions, and special requests. Messages are saved
+                for the hotel team in the admin inquiries panel.
+              </p>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={
+                    heroHotel
+                      ? `/hotels/${heroHotel.slug}/contact`
+                      : "/hotels"
+                  }
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-bold text-luxury-navy shadow-sm transition hover:bg-luxury-gold-soft"
+                >
+                  Contact a hotel
+                </Link>
+
+                <Link
+                  href="/bookings/lookup"
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  Find reservation
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="luxury-container py-16">
           <div className="grid gap-5 md:grid-cols-3">
             {[

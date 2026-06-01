@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { PaymentsClient } from "@/components/payments/PaymentsClient";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -23,8 +24,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
     redirect("/login");
   }
 
-  const hotels = await getServerHotels();
-  const params = await searchParams;
+  const [hotels, params] = await Promise.all([getServerHotels(), searchParams]);
 
   const selectedHotelId = params?.hotelId || hotels[0]?.id || "";
   const selectedHotel = hotels.find((hotel) => hotel.id === selectedHotelId);
@@ -100,10 +100,18 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
   }
 
   return (
-    <PaymentsClient
-      hotel={selectedHotel}
-      reservations={reservations}
-      initialPaymentReservation={initialPaymentReservation}
-    />
+    <Suspense
+      fallback={
+        <Card>
+          <CardContent>Loading payments&hellip;</CardContent>
+        </Card>
+      }
+    >
+      <PaymentsClient
+        hotel={selectedHotel}
+        reservations={reservations}
+        initialPaymentReservation={initialPaymentReservation}
+      />
+    </Suspense>
   );
 }

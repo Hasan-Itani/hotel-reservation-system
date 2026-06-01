@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { ReservationsClient } from "@/components/reservations/ReservationsClient";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -50,8 +51,7 @@ export default async function ReservationsPage({
         redirect("/login");
     }
 
-    const hotels = await getServerHotels();
-    const params = await searchParams;
+    const [hotels, params] = await Promise.all([getServerHotels(), searchParams]);
 
     const selectedHotelId = params?.hotelId || hotels[0]?.id || "";
     const selectedHotel = hotels.find((hotel) => hotel.id === selectedHotelId);
@@ -121,18 +121,26 @@ export default async function ReservationsPage({
     }
 
     return (
-        <ReservationsClient
-            hotel={selectedHotel}
-            initialReservations={reservations}
-            rooms={rooms}
-            initialFilters={{
-                status: params?.status || "",
-                guestEmail: params?.guestEmail || "",
-                checkInFrom: params?.checkInFrom || "",
-                checkInTo: params?.checkInTo || "",
-                checkOutFrom: params?.checkOutFrom || "",
-                checkOutTo: params?.checkOutTo || "",
-            }}
-        />
+        <Suspense
+            fallback={
+                <Card>
+                    <CardContent>Loading reservations&hellip;</CardContent>
+                </Card>
+            }
+        >
+            <ReservationsClient
+                hotel={selectedHotel}
+                initialReservations={reservations}
+                rooms={rooms}
+                initialFilters={{
+                    status: params?.status || "",
+                    guestEmail: params?.guestEmail || "",
+                    checkInFrom: params?.checkInFrom || "",
+                    checkInTo: params?.checkInTo || "",
+                    checkOutFrom: params?.checkOutFrom || "",
+                    checkOutTo: params?.checkOutTo || "",
+                }}
+            />
+        </Suspense>
     );
 }

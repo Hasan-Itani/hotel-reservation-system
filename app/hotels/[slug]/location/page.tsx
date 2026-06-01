@@ -210,6 +210,7 @@ export default async function HotelLocationPage({
                   className="h-full w-full border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
+                  sandbox="allow-scripts allow-popups"
                   allowFullScreen
                 />
               </div>

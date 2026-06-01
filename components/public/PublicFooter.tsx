@@ -1,12 +1,14 @@
 import Link from "next/link";
 
+const COPYRIGHT_YEAR = 2026;
+
 export function PublicFooter() {
   return (
     <footer className="border-t border-luxury-stone bg-luxury-navy text-white">
       <div className="luxury-container grid gap-10 py-12 md:grid-cols-2 lg:grid-cols-[1.15fr_0.75fr_0.75fr_0.85fr]">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-bold text-luxury-navy">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-white text-base font-bold text-luxury-navy">
               H
             </div>
 
@@ -93,7 +95,7 @@ export function PublicFooter() {
       <div className="border-t border-white/10">
         <div className="luxury-container flex flex-col gap-2 py-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            &copy; {new Date().getFullYear()} Hotel System. All rights reserved.
+            &copy; {COPYRIGHT_YEAR} Hotel System. All rights reserved.
           </p>
           <p>Booking, payments, guest accounts, and hotel inquiries.</p>
         </div>

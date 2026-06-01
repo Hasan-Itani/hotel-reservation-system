@@ -7,6 +7,13 @@ import type {
   PublicBookingDetails,
   PublicBookingDetailsResponse,
 } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Reservation Payment",
+  description:
+    "Review a hotel reservation balance and complete payment securely.",
+};
 
 type PublicPayPageProps = {
   params: Promise<{

@@ -11,6 +11,13 @@ import type {
   PublicBookingDetails,
   ReservationStatus,
 } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Guest Reservations",
+  description:
+    "View hotel reservations linked to your guest account and continue payments.",
+};
 
 const publicDateFormatter = new Intl.DateTimeFormat("en", {
   year: "numeric",

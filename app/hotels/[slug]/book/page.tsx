@@ -77,6 +77,20 @@ async function getRoomTypes(slug: string) {
   return data.roomTypes;
 }
 
+export async function generateMetadata({
+  params,
+}: BookingPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const hotel = await getHotel(slug);
+
+  return buildHotelMetadata({
+    hotel,
+    pageTitle: "Book",
+    description: `Book rooms at ${hotel.name}. Review stay details, room options, guest information, and reservation pricing.`,
+    path: `/hotels/${hotel.slug}/book`,
+  });
+}
+
 export default async function BookingPage({
   params,
   searchParams,

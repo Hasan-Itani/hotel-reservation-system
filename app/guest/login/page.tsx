@@ -5,6 +5,13 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
 import { canEnterAdmin } from "@/lib/frontend/permissions";
 import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Guest Sign In",
+  description:
+    "Sign in to manage hotel reservations, guest details, and payment status.",
+};
 
 type GuestLoginPageProps = {
   searchParams?: Promise<{

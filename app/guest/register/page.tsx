@@ -4,6 +4,13 @@ import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
 import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Create Guest Account",
+  description:
+    "Create a guest account to book hotel stays and manage reservations.",
+};
 
 type GuestRegisterPageProps = {
   searchParams?: Promise<{

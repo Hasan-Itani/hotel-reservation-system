@@ -3,6 +3,13 @@ import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { BookingLookupForm } from "@/components/public/BookingLookupForm";
 import { Badge } from "@/components/ui/Badge";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Find Reservation",
+  description:
+    "Look up a hotel reservation by reservation number and guest email.",
+};
 
 export default function BookingLookupPage() {
   return (

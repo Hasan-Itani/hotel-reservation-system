@@ -4,6 +4,13 @@ import { headers } from "next/headers";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import type { PublicHotelsResponse } from "@/lib/frontend/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Luxury Hotel Booking",
+  description:
+    "Browse curated hotels, check live room availability, book stays, manage reservations, and complete payments.",
+};
 
 async function getBaseUrl() {
   const headerStore = await headers();

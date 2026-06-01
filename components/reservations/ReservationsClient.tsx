@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -150,6 +150,8 @@ export function ReservationsClient({
 
   const [reservations, setReservations] = useState(initialReservations);
   const [filters, setFilters] = useState(initialFilters);
+  const previousInitialReservationsRef = useRef(initialReservations);
+  const previousInitialFiltersRef = useRef(initialFilters);
   const [selectedReservationId, setSelectedReservationId] = useState(
     initialReservations[0]?.id || "",
   );
@@ -160,7 +162,12 @@ export function ReservationsClient({
   const [pendingReservationAction, setPendingReservationAction] =
     useState<PendingReservationAction | null>(null);
 
-  useEffect(() => {
+  if (
+    initialReservations !== previousInitialReservationsRef.current ||
+    initialFilters !== previousInitialFiltersRef.current
+  ) {
+    previousInitialReservationsRef.current = initialReservations;
+    previousInitialFiltersRef.current = initialFilters;
     setReservations(initialReservations);
     setFilters(initialFilters);
 
@@ -180,7 +187,7 @@ export function ReservationsClient({
     setRoomAssignments({});
     setPendingReservationAction(null);
     setError("");
-  }, [initialReservations, initialFilters]);
+  }
 
   const selectedReservation = useMemo(() => {
     return (

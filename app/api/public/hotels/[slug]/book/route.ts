@@ -339,7 +339,10 @@ export async function POST(
     console.error("Public booking error:", error);
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error:
+          "We could not create your booking right now. Please try again in a moment.",
+      },
       {
         status: 500,
         headers: rateLimitHeaders(limiter),

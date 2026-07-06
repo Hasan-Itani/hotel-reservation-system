@@ -26,7 +26,7 @@ export async function lockHotelReservationInventory(
 ) {
   const { namespace, key } = getHotelInventoryAdvisoryLockKey(hotelId);
 
-  await tx.$queryRaw`
+  await tx.$executeRaw`
     SELECT pg_advisory_xact_lock(${namespace}, ${key})
   `;
 }

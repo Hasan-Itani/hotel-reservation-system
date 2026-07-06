@@ -97,6 +97,49 @@ function fallbackCopyText(text: string) {
   return copied;
 }
 
+function getFriendlyBookingError(response: Response, data: unknown) {
+  const fallbackMessage =
+    "We could not create your booking right now. Please try again.";
+
+  if (response.status >= 500) {
+    return (
+      "We could not create your booking because something went wrong on our side. Please try again in a moment."
+    );
+  }
+
+  if (response.status === 409) {
+    return (
+      "This room may no longer be available for your selected dates. Please refresh availability and choose again."
+    );
+  }
+
+  if (response.status === 401) {
+    return "Please sign in again before completing your booking.";
+  }
+
+  if (response.status === 429) {
+    return "Too many booking attempts. Please wait a few minutes and try again.";
+  }
+
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    typeof data.error === "string" &&
+    data.error.trim()
+  ) {
+    const rawMessage = data.error.trim();
+
+    if (/internal server error/i.test(rawMessage)) {
+      return fallbackMessage;
+    }
+
+    return rawMessage;
+  }
+
+  return fallbackMessage;
+}
+
 function FormInput({
   label,
   helperText,
@@ -287,7 +330,7 @@ export function BookingForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Unable to create booking");
+        setError(getFriendlyBookingError(response, data));
         return;
       }
 
@@ -295,7 +338,9 @@ export function BookingForm({
       setReservation(bookingData.reservation);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setError("Unable to create booking");
+      setError(
+        "We could not reach the booking service. Check your connection and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }

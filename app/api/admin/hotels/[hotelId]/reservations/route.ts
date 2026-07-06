@@ -420,7 +420,10 @@ export async function POST(
     console.error("Create reservation error:", error);
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error:
+          "We could not create the reservation right now. Please try again.",
+      },
       { status: 500 }
     );
   }

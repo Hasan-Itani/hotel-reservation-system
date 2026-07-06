@@ -7,6 +7,7 @@ import {
   parseDateOnlyToUtc,
 } from "@/lib/hotelInventory";
 import { hasGlobalRole, hasHotelRole } from "@/lib/permissions";
+import { lockHotelReservationInventory } from "@/lib/reservationConcurrency";
 import { validateReservationRoomAvailability } from "@/lib/reservationAvailability";
 import {
   reservationCreateSchema,
@@ -251,129 +252,133 @@ export async function POST(
     }
   }
 
-  const availability = await validateReservationRoomAvailability({
-    hotelId,
-    checkInDate: input.checkInDate,
-    checkOutDate: input.checkOutDate,
-    adults: input.adults,
-    children: input.children,
-    rooms: input.rooms,
-  });
-
-  if (!availability.ok) {
-    return NextResponse.json(availability.body, {
-      status: availability.status,
-    });
-  }
-
-  const { checkIn, checkOut, nights, roomTypeMap } = availability;
-
-const pricing = calculateReservationPricing({
-  nights,
-  rooms: input.rooms,
-  roomTypeMap,
-  taxes: input.taxes,
-  serviceFee: input.serviceFee,
-  discountAmount: input.discountAmount,
-});
-
-if (!pricing.ok) {
-  return NextResponse.json(pricing.body, {
-    status: pricing.status,
-  });
-}
-
-const {
-  subtotal,
-  taxes,
-  serviceFee,
-  discountAmount,
-  total,
-} = pricing;
-
   try {
-    const reservation = await prisma.reservation.create({
-      data: {
-        reservationNumber: generateReservationNumber(),
-        hotelId,
-        userId: input.userId,
-        guestFirstName: input.guestFirstName,
-        guestLastName: input.guestLastName,
-        guestEmail: input.guestEmail,
-        guestPhone: input.guestPhone,
-        checkInDate: checkIn,
-        checkOutDate: checkOut,
-        adults: input.adults,
-        children: input.children,
-        specialRequests: input.specialRequests,
-        subtotal,
-        taxes,
-        total,
-        currency: hotel.currency,
-        discountAmount,
-        serviceFee,
-        reservationRooms: {
-          create: input.rooms.map((room) => {
-            const roomType = roomTypeMap.get(room.roomTypeId)!;
+    const reservation = await prisma.$transaction(
+      async (tx) => {
+        await lockHotelReservationInventory(tx, hotelId);
 
-            return {
-              roomTypeId: room.roomTypeId,
-              nightlyPrice: getRoomTypeNightlyPrice(roomType),
-              guests: room.guests,
-            };
-          }),
-        },
-      },
-      select: {
-        id: true,
-        reservationNumber: true,
-        hotelId: true,
-        userId: true,
-        guestFirstName: true,
-        guestLastName: true,
-        guestEmail: true,
-        guestPhone: true,
-        checkInDate: true,
-        checkOutDate: true,
-        adults: true,
-        children: true,
-        specialRequests: true,
-        status: true,
-        subtotal: true,
-        taxes: true,
-        total: true,
-        currency: true,
-        discountAmount: true,
-        serviceFee: true,
-        createdAt: true,
-        confirmedAt: true,
-        cancelledAt: true,
-        checkedInAt: true,
-        checkedOutAt: true,
-        noShowAt: true,
-        cancellationReason: true,
-        reservationRooms: {
+        const availability = await validateReservationRoomAvailability({
+          hotelId,
+          checkInDate: input.checkInDate,
+          checkOutDate: input.checkOutDate,
+          adults: input.adults,
+          children: input.children,
+          rooms: input.rooms,
+          client: tx,
+        });
+
+        if (!availability.ok) {
+          throw new Response(JSON.stringify(availability.body), {
+            status: availability.status,
+          });
+        }
+
+        const { checkIn, checkOut, nights, roomTypeMap } = availability;
+
+        const pricing = calculateReservationPricing({
+          nights,
+          rooms: input.rooms,
+          roomTypeMap,
+          taxes: input.taxes,
+          serviceFee: input.serviceFee,
+          discountAmount: input.discountAmount,
+        });
+
+        if (!pricing.ok) {
+          throw new Response(JSON.stringify(pricing.body), {
+            status: pricing.status,
+          });
+        }
+
+        const { subtotal, taxes, serviceFee, discountAmount, total } = pricing;
+
+        return tx.reservation.create({
+          data: {
+            reservationNumber: generateReservationNumber(),
+            hotelId,
+            userId: input.userId,
+            guestFirstName: input.guestFirstName,
+            guestLastName: input.guestLastName,
+            guestEmail: input.guestEmail,
+            guestPhone: input.guestPhone,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            adults: input.adults,
+            children: input.children,
+            specialRequests: input.specialRequests,
+            subtotal,
+            taxes,
+            total,
+            currency: hotel.currency,
+            discountAmount,
+            serviceFee,
+            reservationRooms: {
+              create: input.rooms.map((room) => {
+                const roomType = roomTypeMap.get(room.roomTypeId)!;
+
+                return {
+                  roomTypeId: room.roomTypeId,
+                  nightlyPrice: getRoomTypeNightlyPrice(roomType),
+                  guests: room.guests,
+                };
+              }),
+            },
+          },
           select: {
             id: true,
-            roomId: true,
-            roomTypeId: true,
-            nightlyPrice: true,
-            guests: true,
-            roomType: {
+            reservationNumber: true,
+            hotelId: true,
+            userId: true,
+            guestFirstName: true,
+            guestLastName: true,
+            guestEmail: true,
+            guestPhone: true,
+            checkInDate: true,
+            checkOutDate: true,
+            adults: true,
+            children: true,
+            specialRequests: true,
+            status: true,
+            subtotal: true,
+            taxes: true,
+            total: true,
+            currency: true,
+            discountAmount: true,
+            serviceFee: true,
+            createdAt: true,
+            confirmedAt: true,
+            cancelledAt: true,
+            checkedInAt: true,
+            checkedOutAt: true,
+            noShowAt: true,
+            cancellationReason: true,
+            reservationRooms: {
               select: {
                 id: true,
-                name: true,
-                slug: true,
-                basePrice: true,
-                capacityAdults: true,
-                capacityChildren: true,
-                bedType: true,
+                roomId: true,
+                roomTypeId: true,
+                nightlyPrice: true,
+                guests: true,
+                roomType: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    basePrice: true,
+                    capacityAdults: true,
+                    capacityChildren: true,
+                    bedType: true,
+                  },
+                },
               },
             },
           },
-        },
+        });
       },
-    });
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      },
+    );
 
     return NextResponse.json(
       {
@@ -383,12 +388,31 @@ const {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Response) {
+      return NextResponse.json(await error.json(), {
+        status: error.status,
+      });
+    }
+
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
       return NextResponse.json(
         { error: "A unique constraint was violated while creating the reservation" },
+        { status: 409 }
+      );
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2034"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Reservation inventory changed while creating the reservation. Please try again.",
+        },
         { status: 409 }
       );
     }

@@ -12,6 +12,11 @@ export type ReservationRoomRequest = {
   guests: number;
 };
 
+type ReservationAvailabilityClient = Pick<
+  typeof prisma,
+  "roomType" | "reservationRoom"
+>;
+
 const roomTypeAvailabilitySelect = {
   id: true,
   name: true,
@@ -72,11 +77,13 @@ export async function getRoomTypeAvailabilityForHotel(input: {
   adults?: number;
   children?: number;
   roomTypeIds?: string[];
+  client?: ReservationAvailabilityClient;
 }) {
+  const client = input.client ?? prisma;
   const checkIn = parseDateOnlyToUtc(input.checkInDate);
   const checkOut = parseDateOnlyToUtc(input.checkOutDate);
 
-  const roomTypes = await prisma.roomType.findMany({
+  const roomTypes = await client.roomType.findMany({
     where: {
       hotelId: input.hotelId,
       deletedAt: null,
@@ -100,7 +107,7 @@ export async function getRoomTypeAvailabilityForHotel(input: {
     },
   });
 
-  const overlappingReservedCounts = await prisma.reservationRoom.groupBy({
+  const overlappingReservedCounts = await client.reservationRoom.groupBy({
     by: ["roomTypeId"],
     where: {
       ...(input.roomTypeIds
@@ -170,6 +177,7 @@ export async function validateReservationRoomAvailability(input: {
   adults: number;
   children: number;
   rooms: ReservationRoomRequest[];
+  client?: ReservationAvailabilityClient;
 }) {
   const nights = getNightCount(input.checkInDate, input.checkOutDate);
 
@@ -192,6 +200,7 @@ export async function validateReservationRoomAvailability(input: {
     checkInDate: input.checkInDate,
     checkOutDate: input.checkOutDate,
     roomTypeIds,
+    client: input.client,
   });
 
   if (result.roomTypes.length !== roomTypeIds.length) {

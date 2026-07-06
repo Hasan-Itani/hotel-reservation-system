@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import { hasGlobalRole, hasHotelRole, type AuthUser } from "@/lib/permissions";
 import { paymentStatusUpdateSchema } from "@/lib/validators";
@@ -358,6 +359,27 @@ export async function PATCH(
           currency: true,
         },
       });
+
+      await createAuditLog(
+        {
+          hotelId,
+          actorUserId: auth.user.id,
+          action: "PAYMENT_STATUS_UPDATED",
+          entityType: "Payment",
+          entityId: updatedPayment.id,
+          summary: `Payment status was updated for reservation ${payment.reservation.reservationNumber}`,
+          metadata: {
+            reservationId: payment.reservation.id,
+            reservationNumber: payment.reservation.reservationNumber,
+            previousStatus: payment.status,
+            nextStatus: updatedPayment.status,
+            action,
+            amount: Number(updatedPayment.amount),
+            currency: updatedPayment.currency,
+          },
+        },
+        tx,
+      );
 
       return {
         payment: updatedPayment,

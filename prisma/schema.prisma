@@ -25,6 +25,7 @@ model User {
   reservations        Reservation[]
   UserHotelRole       UserHotelRole[]
   userRoles           UserRole[]
+  auditLogs           AuditLog[]
 
   @@index([email])
   @@index([status])
@@ -75,6 +76,7 @@ model Hotel {
   roomTypes     RoomType[]
   inquiries     HotelInquiry[]
   UserHotelRole UserHotelRole[]
+  auditLogs     AuditLog[]
 
   @@index([city, country])
   @@index([deletedAt])
@@ -267,6 +269,26 @@ model HotelInquiry {
   @@index([createdAt])
 }
 
+model AuditLog {
+  id          String   @id @default(uuid())
+  hotelId     String?
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  summary     String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  hotel       Hotel?   @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+
+  @@index([hotelId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 enum HotelInquiryType {
   GENERAL
   RESERVATION
@@ -337,5 +359,4 @@ enum PaymentStatus {
   REFUNDED
   PARTIALLY_REFUNDED
 }
-
 

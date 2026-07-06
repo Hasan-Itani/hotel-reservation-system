@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import { hasGlobalRole, hasHotelRole, type AuthUser } from "@/lib/permissions";
 import { mockPaymentCreateSchema } from "@/lib/validators";
@@ -313,6 +314,26 @@ export async function POST(
           currency: true,
         },
       });
+
+      await createAuditLog(
+        {
+          hotelId,
+          actorUserId: auth.user.id,
+          action: "PAYMENT_CREATED",
+          entityType: "Payment",
+          entityId: payment.id,
+          summary: `Payment was created for reservation ${reservation.reservationNumber}`,
+          metadata: {
+            reservationId: reservation.id,
+            reservationNumber: reservation.reservationNumber,
+            paymentStatus: payment.status,
+            amount: Number(payment.amount),
+            currency: payment.currency,
+            provider: payment.provider,
+          },
+        },
+        tx,
+      );
 
       return {
         payment,

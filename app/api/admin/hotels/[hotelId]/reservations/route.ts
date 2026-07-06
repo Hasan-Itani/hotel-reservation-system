@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import {
   generateReservationNumber,
@@ -292,7 +293,7 @@ export async function POST(
 
         const { subtotal, taxes, serviceFee, discountAmount, total } = pricing;
 
-        return tx.reservation.create({
+        const reservation = await tx.reservation.create({
           data: {
             reservationNumber: generateReservationNumber(),
             hotelId,
@@ -374,6 +375,28 @@ export async function POST(
             },
           },
         });
+
+        await createAuditLog(
+          {
+            hotelId,
+            actorUserId: auth.user.id,
+            action: "RESERVATION_CREATED",
+            entityType: "Reservation",
+            entityId: reservation.id,
+            summary: `Reservation ${reservation.reservationNumber} was created`,
+            metadata: {
+              reservationNumber: reservation.reservationNumber,
+              guestEmail: reservation.guestEmail,
+              status: reservation.status,
+              total: Number(reservation.total),
+              currency: reservation.currency,
+              source: "admin",
+            },
+          },
+          tx,
+        );
+
+        return reservation;
       },
       {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

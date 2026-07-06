@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import { hasGlobalRole, hasHotelRole } from "@/lib/permissions";
 import { reservationUpdateSchema } from "@/lib/validators";
@@ -222,6 +223,20 @@ export async function PATCH(
       select: getReservationSelect(),
     });
 
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "RESERVATION_CONFIRMED",
+      entityType: "Reservation",
+      entityId: reservation.id,
+      summary: `Reservation ${reservation.reservationNumber} was confirmed`,
+      metadata: {
+        reservationNumber: reservation.reservationNumber,
+        previousStatus: existingReservation.status,
+        nextStatus: reservation.status,
+      },
+    });
+
     return NextResponse.json({
       message: "Reservation confirmed successfully",
       reservation,
@@ -241,6 +256,21 @@ export async function PATCH(
       select: getReservationSelect(),
     });
 
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "RESERVATION_CANCELLED",
+      entityType: "Reservation",
+      entityId: reservation.id,
+      summary: `Reservation ${reservation.reservationNumber} was cancelled`,
+      metadata: {
+        reservationNumber: reservation.reservationNumber,
+        previousStatus: existingReservation.status,
+        nextStatus: reservation.status,
+        cancellationReason: reservation.cancellationReason,
+      },
+    });
+
     return NextResponse.json({
       message: "Reservation cancelled successfully",
       reservation,
@@ -257,6 +287,20 @@ export async function PATCH(
         noShowAt: new Date(),
       },
       select: getReservationSelect(),
+    });
+
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "RESERVATION_NO_SHOW",
+      entityType: "Reservation",
+      entityId: reservation.id,
+      summary: `Reservation ${reservation.reservationNumber} was marked as no-show`,
+      metadata: {
+        reservationNumber: reservation.reservationNumber,
+        previousStatus: existingReservation.status,
+        nextStatus: reservation.status,
+      },
     });
 
     return NextResponse.json({
@@ -483,6 +527,24 @@ export async function PATCH(
           throw new Error("UPDATED_RESERVATION_NOT_FOUND");
         }
 
+        await createAuditLog(
+          {
+            hotelId,
+            actorUserId: auth.user.id,
+            action: "RESERVATION_CHECKED_IN",
+            entityType: "Reservation",
+            entityId: updatedReservation.id,
+            summary: `Reservation ${updatedReservation.reservationNumber} was checked in`,
+            metadata: {
+              reservationNumber: updatedReservation.reservationNumber,
+              previousStatus: existingReservation.status,
+              nextStatus: updatedReservation.status,
+              roomAssignments: assignments,
+            },
+          },
+          tx,
+        );
+
         return updatedReservation;
       });
 
@@ -590,6 +652,24 @@ export async function PATCH(
         if (!updatedReservation) {
           throw new Error("UPDATED_RESERVATION_NOT_FOUND");
         }
+
+        await createAuditLog(
+          {
+            hotelId,
+            actorUserId: auth.user.id,
+            action: "RESERVATION_CHECKED_OUT",
+            entityType: "Reservation",
+            entityId: updatedReservation.id,
+            summary: `Reservation ${updatedReservation.reservationNumber} was checked out`,
+            metadata: {
+              reservationNumber: updatedReservation.reservationNumber,
+              previousStatus: existingReservation.status,
+              nextStatus: updatedReservation.status,
+              releasedRoomIds: assignedRoomIds,
+            },
+          },
+          tx,
+        );
 
         return updatedReservation;
       });

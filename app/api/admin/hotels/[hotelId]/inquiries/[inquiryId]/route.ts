@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireAuth } from "@/lib/guards";
 import { canAccessHotel } from "@/lib/permissions";
 import { adminHotelInquiryUpdateSchema } from "@/lib/validators";
@@ -51,6 +52,9 @@ export async function PATCH(
     },
     select: {
       id: true,
+      status: true,
+      adminNote: true,
+      subject: true,
     },
   });
 
@@ -121,6 +125,20 @@ export async function PATCH(
           slug: true,
         },
       },
+    },
+  });
+
+  await createAuditLog({
+    hotelId,
+    actorUserId: auth.user.id,
+    action: "INQUIRY_UPDATED",
+    entityType: "HotelInquiry",
+    entityId: inquiry.id,
+    summary: `Inquiry "${inquiry.subject}" was updated`,
+    metadata: {
+      previousStatus: existingInquiry.status,
+      nextStatus: inquiry.status,
+      adminNoteChanged: existingInquiry.adminNote !== inquiry.adminNote,
     },
   });
 

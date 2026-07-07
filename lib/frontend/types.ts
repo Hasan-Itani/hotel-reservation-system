@@ -42,7 +42,6 @@ export type LoginResponse = {
 
 export type ForgotPasswordResponse = {
   message: string;
-  resetUrl?: string;
 };
 
 export type ResetPasswordResponse = {
@@ -609,7 +608,6 @@ export type PublicBookingPaymentResponse = {
 
 export type GuestRegisterResponse = {
   message: string;
-  verificationUrl?: string;
 };
 
 export type VerifyEmailResponse = {

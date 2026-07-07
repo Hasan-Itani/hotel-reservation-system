@@ -13,13 +13,6 @@ import { guestRegisterSchema } from "@/lib/validators";
 
 export const dynamic = "force-dynamic";
 
-function canExposeDevelopmentVerificationLink() {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.SHOW_DEV_VERIFICATION_LINK !== "false"
-  );
-}
-
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
@@ -150,7 +143,6 @@ export async function POST(request: Request) {
     {
       message:
         "Account created. Check your email and verify your address before signing in.",
-      ...(canExposeDevelopmentVerificationLink() ? { verificationUrl } : {}),
     },
     {
       status: 201,

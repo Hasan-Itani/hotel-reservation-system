@@ -30,7 +30,6 @@ type GuestRegisterFormProps = {
 export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
   const [form, setForm] = useState<RegisterFormState>(defaultForm);
   const [message, setMessage] = useState("");
-  const [verificationUrl, setVerificationUrl] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,7 +48,6 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
 
     setError("");
     setMessage("");
-    setVerificationUrl("");
 
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters");
@@ -76,7 +74,6 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
       });
 
       setMessage(data.message);
-      setVerificationUrl(data.verificationUrl || "");
       setForm(defaultForm);
     } catch (caughtError) {
       if (caughtError instanceof FrontendApiError) {
@@ -103,15 +100,6 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
       {message ? (
         <div className="rounded-3xl border border-luxury-stone bg-luxury-cream px-5 py-4 text-sm font-bold text-luxury-ink">
           <p>{message}</p>
-
-          {verificationUrl ? (
-            <Link
-              href={verificationUrl}
-              className="mt-3 block break-all text-luxury-gold underline underline-offset-4"
-            >
-              Open development verification link
-            </Link>
-          ) : null}
         </div>
       ) : null}
 

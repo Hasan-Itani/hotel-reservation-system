@@ -15,13 +15,6 @@ export const dynamic = "force-dynamic";
 const PASSWORD_RESET_RESPONSE =
   "If an active account exists for that email, password reset instructions have been sent.";
 
-function canExposeDevelopmentResetLink() {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.SHOW_DEV_RESET_LINK !== "false"
-  );
-}
-
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
@@ -80,9 +73,31 @@ export async function POST(request: Request) {
     },
   });
 
-  let resetUrl: string | undefined;
-
   if (user && !user.deletedAt && user.status === "ACTIVE") {
+    const existingActiveToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        userId: user.id,
+        usedAt: null,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingActiveToken) {
+      return NextResponse.json(
+        {
+          message: PASSWORD_RESET_RESPONSE,
+        },
+        {
+          headers: rateLimitHeaders(limiter),
+        },
+      );
+    }
+
     const token = createPasswordResetToken();
     const tokenHash = hashPasswordResetToken(token);
 
@@ -106,7 +121,7 @@ export async function POST(request: Request) {
       });
     });
 
-    resetUrl = `${new URL(request.url).origin}/guest/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${new URL(request.url).origin}/guest/reset-password?token=${encodeURIComponent(token)}`;
 
     try {
       const emailResult = await sendPasswordResetEmail({
@@ -127,7 +142,6 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       message: PASSWORD_RESET_RESPONSE,
-      ...(resetUrl && canExposeDevelopmentResetLink() ? { resetUrl } : {}),
     },
     {
       headers: rateLimitHeaders(limiter),

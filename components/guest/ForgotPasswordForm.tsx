@@ -1,14 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { ForgotPasswordResponse } from "@/lib/frontend/types";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [resetUrl, setResetUrl] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -17,7 +15,6 @@ export function ForgotPasswordForm() {
 
     setError("");
     setMessage("");
-    setResetUrl("");
     setIsSubmitting(true);
 
     try {
@@ -32,7 +29,6 @@ export function ForgotPasswordForm() {
       );
 
       setMessage(data.message);
-      setResetUrl(data.resetUrl || "");
     } catch (caughtError) {
       if (caughtError instanceof FrontendApiError) {
         setError(caughtError.message);
@@ -55,15 +51,6 @@ export function ForgotPasswordForm() {
       {message ? (
         <div className="rounded-3xl border border-luxury-stone bg-luxury-cream px-5 py-4 text-sm font-bold text-luxury-ink">
           <p>{message}</p>
-
-          {resetUrl ? (
-            <Link
-              href={resetUrl}
-              className="mt-3 block break-all text-luxury-gold underline underline-offset-4"
-            >
-              Open development reset link
-            </Link>
-          ) : null}
         </div>
       ) : null}
 
@@ -93,12 +80,12 @@ export function ForgotPasswordForm() {
 
       <p className="text-center text-sm text-slate-600">
         Remembered your password?{" "}
-        <Link
+        <a
           href="/guest/login"
           className="font-black text-luxury-gold transition hover:text-luxury-ink"
         >
           Sign in
-        </Link>
+        </a>
       </p>
     </form>
   );

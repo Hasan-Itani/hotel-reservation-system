@@ -30,7 +30,10 @@ function formatDate(value: string) {
 }
 
 function formatLabel(value: string) {
-  return value.replaceAll("_", " ");
+  return value
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function formatActor(log: AuditLogItem) {
@@ -45,14 +48,65 @@ function formatActorDetail(log: AuditLogItem) {
   return log.actor.email;
 }
 
-function stringifyMetadata(metadata: unknown) {
-  if (!metadata) return "";
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
 
-  try {
-    return JSON.stringify(metadata, null, 2);
-  } catch {
-    return String(metadata);
+function formatDetailLabel(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "-";
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "-";
+
+    return value
+      .map((item) => {
+        if (isRecord(item)) {
+          return Object.entries(item)
+            .map(([key, entryValue]) => {
+              return `${formatDetailLabel(key)}: ${formatDetailValue(entryValue)}`;
+            })
+            .join(", ");
+        }
+
+        return formatDetailValue(item);
+      })
+      .join("; ");
   }
+
+  if (isRecord(value)) {
+    return Object.entries(value)
+      .map(([key, entryValue]) => {
+        return `${formatDetailLabel(key)}: ${formatDetailValue(entryValue)}`;
+      })
+      .join("; ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  if (typeof value === "string") {
+    return formatLabel(value);
+  }
+
+  return String(value);
+}
+
+function getReadableDetails(metadata: unknown) {
+  if (!isRecord(metadata)) return [];
+
+  return Object.entries(metadata).map(([key, value]) => ({
+    label: formatDetailLabel(key),
+    value: formatDetailValue(value),
+  }));
 }
 
 export function AdminAuditClient({
@@ -130,9 +184,9 @@ export function AdminAuditClient({
           </p>
         </div>
 
-        <Badge variant="primary">
+        <span className="inline-flex rounded-full bg-luxury-gold-soft px-3 py-1 text-xs font-bold text-luxury-navy">
           {initialLogs.length} event{initialLogs.length === 1 ? "" : "s"}
-        </Badge>
+        </span>
       </section>
 
       <Card>
@@ -200,7 +254,10 @@ export function AdminAuditClient({
             </label>
 
             <div className="flex items-end gap-2">
-              <Button onClick={applyFilters} className="h-11 flex-1">
+              <Button
+                onClick={applyFilters}
+                className="h-11 flex-1 bg-luxury-navy hover:bg-luxury-ink"
+              >
                 Apply
               </Button>
 
@@ -251,16 +308,16 @@ export function AdminAuditClient({
                       className={[
                         "w-full rounded-xl border bg-white p-4 text-left transition",
                         isSelected
-                          ? "border-primary ring-4 ring-primary-soft"
-                          : "border-border hover:border-primary-soft hover:bg-surface-muted",
+                          ? "border-luxury-gold bg-luxury-cream ring-4 ring-luxury-gold-soft"
+                          : "border-border hover:border-luxury-stone hover:bg-luxury-cream/60",
                       ].join(" ")}
                     >
                       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
                         <div className="min-w-0">
                           <div className="flex flex-wrap gap-2">
-                            <Badge variant="primary">
+                            <span className="rounded-full bg-luxury-gold-soft px-3 py-1 text-xs font-bold text-luxury-navy">
                               {formatLabel(log.action)}
-                            </Badge>
+                            </span>
                             <Badge>{log.entityType}</Badge>
                           </div>
 
@@ -306,9 +363,9 @@ export function AdminAuditClient({
               <div className="space-y-5">
                 <div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="primary">
+                    <span className="rounded-full bg-luxury-gold-soft px-3 py-1 text-xs font-bold text-luxury-navy">
                       {formatLabel(selectedLog.action)}
-                    </Badge>
+                    </span>
                     <Badge>{selectedLog.entityType}</Badge>
                   </div>
 
@@ -333,7 +390,7 @@ export function AdminAuditClient({
                   </div>
 
                   <div>
-                    <p className="text-xs text-muted-foreground">Entity ID</p>
+                    <p className="text-xs text-muted-foreground">Record ID</p>
                     <p className="mt-1 break-all font-bold text-foreground">
                       {selectedLog.entityId || "-"}
                     </p>
@@ -341,17 +398,27 @@ export function AdminAuditClient({
                 </div>
 
                 <div>
-                  <p className="text-sm font-bold text-foreground">
-                    Metadata
-                  </p>
+                  <p className="text-sm font-bold text-foreground">Changes</p>
 
-                  {stringifyMetadata(selectedLog.metadata) ? (
-                    <pre className="mt-2 max-h-[420px] overflow-auto rounded-xl border border-border bg-slate-950 p-4 text-xs leading-6 text-white">
-                      {stringifyMetadata(selectedLog.metadata)}
-                    </pre>
+                  {getReadableDetails(selectedLog.metadata).length > 0 ? (
+                    <div className="mt-2 divide-y divide-luxury-stone overflow-hidden rounded-xl border border-luxury-stone bg-white">
+                      {getReadableDetails(selectedLog.metadata).map((detail) => (
+                        <div
+                          key={detail.label}
+                          className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[150px_1fr]"
+                        >
+                          <p className="font-semibold text-slate-500">
+                            {detail.label}
+                          </p>
+                          <p className="break-words font-bold text-luxury-ink">
+                            {detail.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="mt-2 rounded-xl border border-dashed border-border bg-surface-muted px-4 py-8 text-center text-sm text-muted-foreground">
-                      No metadata recorded.
+                      No extra details recorded.
                     </div>
                   )}
                 </div>

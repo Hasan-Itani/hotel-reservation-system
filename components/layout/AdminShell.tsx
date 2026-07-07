@@ -126,8 +126,8 @@ export function AdminShell({ user, hotels, children }: AdminShellProps) {
           className={[
             "block rounded-2xl px-4 py-3 text-sm font-bold transition",
             isActive
-              ? "bg-luxury-gold text-luxury-navy shadow-sm shadow-black/10"
-              : "text-white/65 hover:bg-white/10 hover:text-white",
+              ? "bg-luxury-navy text-white shadow-sm shadow-slate-900/10"
+              : "text-slate-600 hover:bg-luxury-cream hover:text-luxury-ink",
           ].join(" ")}
         >
           {item.label}
@@ -138,26 +138,26 @@ export function AdminShell({ user, hotels, children }: AdminShellProps) {
 
   return (
     <div className="min-h-screen bg-luxury-cream text-luxury-ink">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-white/10 bg-luxury-navy text-white shadow-2xl shadow-slate-950/20 lg:block">
-        <div className="flex h-20 items-center border-b border-white/10 px-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-bold text-luxury-navy shadow-sm">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-luxury-stone bg-white text-luxury-ink shadow-xl shadow-slate-900/5 lg:block">
+        <div className="flex h-20 items-center border-b border-luxury-stone px-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-luxury-navy text-base font-bold text-white shadow-sm">
             H
           </div>
 
           <div className="ml-3">
-            <p className="text-sm font-bold tracking-wide text-white">
+            <p className="text-sm font-bold tracking-wide text-luxury-ink">
               Hotel System
             </p>
-            <p className="text-xs text-white/55">Admin Panel</p>
+            <p className="text-xs text-slate-500">Admin Panel</p>
           </div>
         </div>
 
         <div className="px-5 py-5">
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-luxury-gold-soft">
+          <div className="rounded-[1.5rem] border border-luxury-stone bg-luxury-cream p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-luxury-gold">
               Active hotel
             </p>
-            <p className="mt-2 line-clamp-2 text-sm font-bold text-white">
+            <p className="mt-2 line-clamp-2 text-sm font-bold text-luxury-ink">
               {hotels.find((hotel) => hotel.id === selectedHotelId)?.name ||
                 "No hotel selected"}
             </p>
@@ -176,25 +176,25 @@ export function AdminShell({ user, hotels, children }: AdminShellProps) {
             onClick={() => setIsMobileNavOpen(false)}
           />
 
-          <aside className="relative h-full w-80 max-w-[86vw] border-r border-white/10 bg-luxury-navy text-white shadow-xl">
-            <div className="flex h-20 items-center justify-between border-b border-white/10 px-4">
+          <aside className="relative h-full w-80 max-w-[86vw] border-r border-luxury-stone bg-white text-luxury-ink shadow-xl">
+            <div className="flex h-20 items-center justify-between border-b border-luxury-stone px-4">
               <div className="flex items-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-base font-bold text-luxury-navy">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-luxury-navy text-base font-bold text-white">
                   H
                 </div>
 
                 <div className="ml-3">
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-luxury-ink">
                     Hotel System
                   </p>
-                  <p className="text-xs text-white/55">Admin Panel</p>
+                  <p className="text-xs text-slate-500">Admin Panel</p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIsMobileNavOpen(false)}
-                className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-xl border border-luxury-stone px-3 py-2 text-sm font-semibold text-luxury-ink"
               >
                 Close
               </button>

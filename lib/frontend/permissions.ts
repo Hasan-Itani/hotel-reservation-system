@@ -84,3 +84,10 @@ export function canViewGuests(user: AuthUser, hotelId: string) {
     hasHotelRole(user, hotelId, HOTEL_ROLES.RECEPTIONIST)
   );
 }
+
+export function canViewAudit(user: AuthUser, hotelId: string) {
+  return (
+    hasHotelRole(user, hotelId, HOTEL_ROLES.HOTEL_ADMIN) ||
+    hasHotelRole(user, hotelId, HOTEL_ROLES.MANAGER)
+  );
+}

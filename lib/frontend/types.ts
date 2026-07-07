@@ -642,3 +642,33 @@ export type AdminGuestsResponse = {
   hotelName: string;
   guests: AdminGuestListItem[];
 };
+
+export type AuditLogActor = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+} | null;
+
+export type AuditLogItem = {
+  id: string;
+  hotelId: string | null;
+  actorUserId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  summary: string;
+  metadata: unknown;
+  createdAt: string;
+  actor: AuditLogActor;
+};
+
+export type AdminAuditLogsResponse = {
+  hotelId: string;
+  hotelName: string;
+  logs: AuditLogItem[];
+  filters: {
+    actions: string[];
+    entityTypes: string[];
+  };
+};

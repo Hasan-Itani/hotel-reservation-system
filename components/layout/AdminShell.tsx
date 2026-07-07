@@ -9,6 +9,7 @@ import {
   canManagePayments,
   canManageReservations,
   canManageStaff,
+  canViewAudit,
   canViewGuests,
   isSuperAdmin,
 } from "@/lib/frontend/permissions";
@@ -86,6 +87,12 @@ export function AdminShell({ user, hotels, children }: AdminShellProps) {
       label: "Payments",
       allowed:
         selectedHotelId.length > 0 && canManagePayments(user, selectedHotelId),
+    },
+    {
+      href: "/admin/audit",
+      label: "Audit",
+      allowed:
+        selectedHotelId.length > 0 && canViewAudit(user, selectedHotelId),
     },
   ];
 

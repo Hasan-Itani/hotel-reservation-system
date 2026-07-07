@@ -26,6 +26,7 @@ model User {
   UserHotelRole       UserHotelRole[]
   userRoles           UserRole[]
   auditLogs           AuditLog[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
   @@index([status])
@@ -289,6 +290,20 @@ model AuditLog {
   @@index([createdAt])
 }
 
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+}
+
 enum HotelInquiryType {
   GENERAL
   RESERVATION
@@ -359,4 +374,3 @@ enum PaymentStatus {
   REFUNDED
   PARTIALLY_REFUNDED
 }
-

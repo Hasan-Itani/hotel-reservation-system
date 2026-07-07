@@ -39,6 +39,15 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+export type ForgotPasswordResponse = {
+  message: string;
+  resetUrl?: string;
+};
+
+export type ResetPasswordResponse = {
+  message: string;
+};
+
 export type LogoutResponse = {
   message: string;
 };

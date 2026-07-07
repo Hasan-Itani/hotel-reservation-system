@@ -2,20 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
-import type { LoginResponse } from "@/lib/frontend/types";
+import type { ResetPasswordResponse } from "@/lib/frontend/types";
 
-type GuestLoginFormProps = {
-  next: string;
+type ResetPasswordFormProps = {
+  token: string;
 };
 
-export function GuestLoginForm({ next }: GuestLoginFormProps) {
-  const router = useRouter();
-
-  const [email, setEmail] = useState("");
+export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [password, setPassword] = useState("");
-
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,24 +20,45 @@ export function GuestLoginForm({ next }: GuestLoginFormProps) {
     event.preventDefault();
 
     setError("");
+    setMessage("");
+
+    if (!token) {
+      setError("Password reset link is missing. Request a new reset link.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await clientFetchJson<LoginResponse>("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      const data = await clientFetchJson<ResetPasswordResponse>(
+        "/api/auth/reset-password",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            token,
+            password,
+          }),
+        },
+      );
 
-      router.replace(next);
-      router.refresh();
+      setMessage(data.message);
+      setPassword("");
+      setConfirmPassword("");
     } catch (caughtError) {
       if (caughtError instanceof FrontendApiError) {
         setError(caughtError.message);
       } else {
-        setError("Unable to login right now");
+        setError("Unable to reset password right now");
       }
     } finally {
       setIsSubmitting(false);
@@ -55,62 +73,59 @@ export function GuestLoginForm({ next }: GuestLoginFormProps) {
         </div>
       ) : null}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold text-luxury-ink">
-          Email
-        </span>
-        <input
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="guest@example.com"
-          className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
-        />
-      </label>
+      {message ? (
+        <div className="rounded-3xl border border-luxury-stone bg-luxury-cream px-5 py-4 text-sm font-bold text-luxury-ink">
+          {message}
+        </div>
+      ) : null}
 
       <label className="block">
         <span className="mb-2 block text-sm font-bold text-luxury-ink">
-          Password
+          New password
         </span>
         <input
           name="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="Enter your password"
+          placeholder="At least 8 characters"
           className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
         />
       </label>
 
-      <div className="-mt-2 text-right">
-        <Link
-          href="/guest/forgot-password"
-          className="text-sm font-bold text-luxury-gold transition hover:text-luxury-ink"
-        >
-          Forgot password?
-        </Link>
-      </div>
+      <label className="block">
+        <span className="mb-2 block text-sm font-bold text-luxury-ink">
+          Confirm new password
+        </span>
+        <input
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          required
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          placeholder="Re-enter your password"
+          className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
+        />
+      </label>
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !token}
         className="inline-flex h-12 w-full items-center justify-center rounded-full bg-luxury-navy px-6 text-sm font-bold text-white shadow-sm transition hover:bg-luxury-ink disabled:opacity-60"
       >
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting ? "Updating password..." : "Update password"}
       </button>
 
       <p className="text-center text-sm text-slate-600">
-        New guest?{" "}
+        Back to{" "}
         <Link
-          href={`/guest/register?next=${encodeURIComponent(next)}`}
+          href="/guest/login"
           className="font-black text-luxury-gold transition hover:text-luxury-ink"
         >
-          Create account
+          sign in
         </Link>
       </p>
     </form>

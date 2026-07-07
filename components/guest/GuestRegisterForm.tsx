@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { GuestRegisterResponse } from "@/lib/frontend/types";
 
@@ -29,9 +28,9 @@ type GuestRegisterFormProps = {
 };
 
 export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
-  const router = useRouter();
-
   const [form, setForm] = useState<RegisterFormState>(defaultForm);
+  const [message, setMessage] = useState("");
+  const [verificationUrl, setVerificationUrl] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,6 +48,8 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
     event.preventDefault();
 
     setError("");
+    setMessage("");
+    setVerificationUrl("");
 
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters");
@@ -63,7 +64,7 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
     setIsSubmitting(true);
 
     try {
-      await clientFetchJson<GuestRegisterResponse>("/api/guest/register", {
+      const data = await clientFetchJson<GuestRegisterResponse>("/api/guest/register", {
         method: "POST",
         body: JSON.stringify({
           firstName: form.firstName,
@@ -74,8 +75,9 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
         }),
       });
 
-      router.replace(next);
-      router.refresh();
+      setMessage(data.message);
+      setVerificationUrl(data.verificationUrl || "");
+      setForm(defaultForm);
     } catch (caughtError) {
       if (caughtError instanceof FrontendApiError) {
         setError(caughtError.message);
@@ -95,6 +97,21 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
       {error ? (
         <div className="rounded-3xl border border-danger-soft bg-danger-soft px-5 py-4 text-sm font-bold text-danger">
           {error}
+        </div>
+      ) : null}
+
+      {message ? (
+        <div className="rounded-3xl border border-luxury-stone bg-luxury-cream px-5 py-4 text-sm font-bold text-luxury-ink">
+          <p>{message}</p>
+
+          {verificationUrl ? (
+            <Link
+              href={verificationUrl}
+              className="mt-3 block break-all text-luxury-gold underline underline-offset-4"
+            >
+              Open development verification link
+            </Link>
+          ) : null}
         </div>
       ) : null}
 

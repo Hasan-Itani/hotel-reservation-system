@@ -5,6 +5,7 @@ export type AuthUser = {
   email: string;
   phone: string | null;
   status: string;
+  emailVerifiedAt: string | null;
   globalRoles: string[];
   hotelRoles: Array<{
     hotelId: string;
@@ -608,7 +609,11 @@ export type PublicBookingPaymentResponse = {
 
 export type GuestRegisterResponse = {
   message: string;
-  user: AuthUser;
+  verificationUrl?: string;
+};
+
+export type VerifyEmailResponse = {
+  message: string;
 };
 
 export type GuestBookingsResponse = {

@@ -97,6 +97,12 @@ export const resetPasswordSchema = z
   })
   .strict();
 
+export const verifyEmailSchema = z
+  .object({
+    token: z.string().trim().min(32).max(300),
+  })
+  .strict();
+
 export const guestRegisterSchema = z
   .object({
     firstName: z.string().trim().min(1).max(80),
@@ -220,6 +226,7 @@ export const roomTypeUpdateSchema = z
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type GuestRegisterInput = z.infer<typeof guestRegisterSchema>;
 export type RoomCreateInput = z.infer<typeof roomCreateSchema>;
 export type RoomUpdateInput = z.infer<typeof roomUpdateSchema>;

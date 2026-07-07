@@ -15,6 +15,13 @@ function lockUntilDate() {
   return new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
 }
 
+function isStaffOrAdminUser(user: {
+  userRoles: unknown[];
+  UserHotelRole: unknown[];
+}) {
+  return user.userRoles.length > 0 || user.UserHotelRole.length > 0;
+}
+
 export async function authenticateUser(rawInput: LoginInput) {
   const parsed = loginSchema.safeParse(rawInput);
 
@@ -77,6 +84,14 @@ export async function authenticateUser(rawInput: LoginInput) {
     };
   }
 
+  if (!user.emailVerifiedAt && !isStaffOrAdminUser(user)) {
+    return {
+      ok: false as const,
+      status: 403,
+      error: "Please verify your email before signing in.",
+    };
+  }
+
   const passwordValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!passwordValid) {
@@ -124,6 +139,7 @@ export async function authenticateUser(rawInput: LoginInput) {
       email: user.email,
       phone: user.phone,
       status: user.status,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
       globalRoles: user.userRoles.map((item) => item.role.name),
       hotelRoles: user.UserHotelRole.map((item) => ({
         hotelId: item.hotelId,
@@ -172,6 +188,7 @@ export async function getCurrentAuthUser() {
       email: user.email,
       phone: user.phone,
       status: user.status,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
       globalRoles: user.userRoles.map((item) => item.role.name),
       hotelRoles: user.UserHotelRole.map((item) => ({
         hotelId: item.hotelId,

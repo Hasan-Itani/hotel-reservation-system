@@ -54,6 +54,7 @@ export async function PUT(request: Request) {
       email: true,
       phone: true,
       status: true,
+      emailVerifiedAt: true,
     },
   });
 

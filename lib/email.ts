@@ -82,3 +82,26 @@ export async function sendPasswordResetEmail(input: {
     ].join(""),
   });
 }
+
+export async function sendEmailVerificationEmail(input: {
+  to: string;
+  verificationUrl: string;
+}): Promise<SendEmailResult> {
+  return sendTransactionalEmail({
+    to: input.to,
+    subject: "Verify your Hotel System email",
+    text: [
+      "Welcome to Hotel System.",
+      "",
+      "Open this secure link to verify your email address:",
+      input.verificationUrl,
+      "",
+      "This link expires in 24 hours. If you did not create this account, you can ignore this email.",
+    ].join("\n"),
+    html: [
+      "<p>Welcome to Hotel System.</p>",
+      `<p><a href="${input.verificationUrl}">Verify your email address</a></p>`,
+      "<p>This link expires in 24 hours. If you did not create this account, you can ignore this email.</p>",
+    ].join(""),
+  });
+}

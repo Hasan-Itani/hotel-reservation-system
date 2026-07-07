@@ -1,12 +1,24 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import {
+  createEmailVerificationToken,
+  getEmailVerificationExpiry,
+  hashEmailVerificationToken,
+} from "@/lib/emailVerification";
+import { sendEmailVerificationEmail } from "@/lib/email";
 import { getClientIp } from "@/lib/getClientIp";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
-import { setSessionCookie, signSession } from "@/lib/session";
 import { guestRegisterSchema } from "@/lib/validators";
 
 export const dynamic = "force-dynamic";
+
+function canExposeDevelopmentVerificationLink() {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.SHOW_DEV_VERIFICATION_LINK !== "false"
+  );
+}
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -95,7 +107,10 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const user = await prisma.user.create({
+  const verificationToken = createEmailVerificationToken();
+  const verificationTokenHash = hashEmailVerificationToken(verificationToken);
+
+  await prisma.user.create({
     data: {
       firstName,
       lastName,
@@ -105,33 +120,37 @@ export async function POST(request: Request) {
       status: "ACTIVE",
       failedLoginAttempts: 0,
       lockedUntil: null,
-      lastLoginAt: new Date(),
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      status: true,
+      emailVerificationTokens: {
+        create: {
+          tokenHash: verificationTokenHash,
+          expiresAt: getEmailVerificationExpiry(),
+        },
+      },
     },
   });
 
-  const token = await signSession({
-    sub: user.id,
-    email: user.email,
-  });
+  const verificationUrl = `${new URL(request.url).origin}/guest/verify-email?token=${encodeURIComponent(verificationToken)}`;
 
-  await setSessionCookie(token);
+  try {
+    const emailResult = await sendEmailVerificationEmail({
+      to: email,
+      verificationUrl,
+    });
+
+    if (!emailResult.sent && process.env.NODE_ENV === "production") {
+      console.error(
+        "Email verification is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+      );
+    }
+  } catch (error) {
+    console.error("Email verification failed", error);
+  }
 
   return NextResponse.json(
     {
-      message: "Guest account created",
-      user: {
-        ...user,
-        globalRoles: [],
-        hotelRoles: [],
-      },
+      message:
+        "Account created. Check your email and verify your address before signing in.",
+      ...(canExposeDevelopmentVerificationLink() ? { verificationUrl } : {}),
     },
     {
       status: 201,

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelRole } from "@/lib/guards";
 import { hotelStaffCreateSchema } from "@/lib/validators";
 
@@ -364,6 +365,20 @@ export async function POST(
 
     const assignments = await getStaffAssignments(hotelId, userId);
     const [staffMember] = mapStaff(assignments);
+
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "STAFF_ASSIGNED",
+      entityType: "User",
+      entityId: staffMember.id,
+      summary: `${staffMember.firstName} ${staffMember.lastName} was assigned as hotel staff`,
+      metadata: {
+        staffName: `${staffMember.firstName} ${staffMember.lastName}`,
+        staffEmail: staffMember.email,
+        roles: staffMember.roles.map((role) => role.name),
+      },
+    });
 
     return NextResponse.json(
       {

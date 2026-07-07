@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import { BLOCKING_RESERVATION_STATUSES } from "@/lib/hotelInventory";
 import { hasGlobalRole, hasHotelRole } from "@/lib/permissions";
@@ -167,7 +168,9 @@ export async function PATCH(
       id: true,
       roomNumber: true,
       roomTypeId: true,
+      floor: true,
       status: true,
+      notes: true,
     },
   });
 
@@ -266,6 +269,27 @@ export async function PATCH(
         notes: input.notes,
       },
       select: getRoomSelect(),
+    });
+
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "ROOM_UPDATED",
+      entityType: "Room",
+      entityId: room.id,
+      summary: `Room ${room.roomNumber} was updated`,
+      metadata: {
+        roomNumber: room.roomNumber,
+        previousRoomNumber: existingRoom.roomNumber,
+        nextRoomNumber: room.roomNumber,
+        previousRoomTypeId: existingRoom.roomTypeId,
+        nextRoomTypeId: room.roomTypeId,
+        previousFloor: existingRoom.floor,
+        nextFloor: room.floor,
+        previousStatus: existingRoom.status,
+        nextStatus: room.status,
+        notesChanged: existingRoom.notes !== room.notes,
+      },
     });
 
     return NextResponse.json({
@@ -409,6 +433,19 @@ export async function DELETE(
         id: true,
         roomNumber: true,
         deletedAt: true,
+      },
+    });
+
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "ROOM_DELETED",
+      entityType: "Room",
+      entityId: room.id,
+      summary: `Room ${room.roomNumber} was deleted`,
+      metadata: {
+        roomNumber: room.roomNumber,
+        deletedAt: room.deletedAt,
       },
     });
 

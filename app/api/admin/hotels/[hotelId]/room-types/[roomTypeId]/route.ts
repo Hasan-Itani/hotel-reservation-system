@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import { BLOCKING_RESERVATION_STATUSES } from "@/lib/hotelInventory";
 import { hasGlobalRole, hasHotelRole } from "@/lib/permissions";
@@ -254,6 +255,7 @@ export async function PATCH(
       id: true,
       name: true,
       slug: true,
+      description: true,
       basePrice: true,
       capacityAdults: true,
       capacityChildren: true,
@@ -433,6 +435,36 @@ export async function PATCH(
       if (!updatedRoomType) {
         throw new Error("UPDATED_ROOM_TYPE_NOT_FOUND");
       }
+
+      await createAuditLog(
+        {
+          hotelId,
+          actorUserId: auth.user.id,
+          action: "ROOM_TYPE_UPDATED",
+          entityType: "RoomType",
+          entityId: updatedRoomType.id,
+          summary: `Room type ${updatedRoomType.name} was updated`,
+          metadata: {
+            previousName: existingRoomType.name,
+            nextName: updatedRoomType.name,
+            previousSlug: existingRoomType.slug,
+            nextSlug: updatedRoomType.slug,
+            descriptionChanged:
+              existingRoomType.description !== updatedRoomType.description,
+            previousBasePrice: Number(existingRoomType.basePrice),
+            nextBasePrice: Number(updatedRoomType.basePrice),
+            previousCapacityAdults: existingRoomType.capacityAdults,
+            nextCapacityAdults: updatedRoomType.capacityAdults,
+            previousCapacityChildren: existingRoomType.capacityChildren,
+            nextCapacityChildren: updatedRoomType.capacityChildren,
+            previousBedType: existingRoomType.bedType,
+            nextBedType: updatedRoomType.bedType,
+            imagesChanged: input.images !== undefined,
+            amenitiesChanged: input.amenityIds !== undefined,
+          },
+        },
+        tx,
+      );
 
       return updatedRoomType;
     });
@@ -660,6 +692,23 @@ export async function DELETE(
       if (!deletedRoomType) {
         throw new Error("DELETED_ROOM_TYPE_NOT_FOUND");
       }
+
+      await createAuditLog(
+        {
+          hotelId,
+          actorUserId: auth.user.id,
+          action: "ROOM_TYPE_DELETED",
+          entityType: "RoomType",
+          entityId: deletedRoomType.id,
+          summary: `Room type ${deletedRoomType.name} was deleted`,
+          metadata: {
+            name: deletedRoomType.name,
+            slug: deletedRoomType.slug,
+            deletedAt: deletedRoomType.deletedAt,
+          },
+        },
+        tx,
+      );
 
       return deletedRoomType;
     });

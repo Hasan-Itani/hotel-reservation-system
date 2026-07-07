@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import { hasGlobalRole, hasHotelRole } from "@/lib/permissions";
 import { validateRoomCreateStatus } from "@/lib/roomLifecycle";
@@ -200,6 +201,21 @@ export async function POST(
             bedType: true,
           },
         },
+      },
+    });
+
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "ROOM_CREATED",
+      entityType: "Room",
+      entityId: room.id,
+      summary: `Room ${room.roomNumber} was created`,
+      metadata: {
+        roomNumber: room.roomNumber,
+        roomType: room.roomType.name,
+        floor: room.floor,
+        status: room.status,
       },
     });
 

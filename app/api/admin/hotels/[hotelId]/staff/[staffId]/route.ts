@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelRole } from "@/lib/guards";
 import { hasGlobalRole } from "@/lib/permissions";
 import { hotelStaffUpdateSchema } from "@/lib/validators";
@@ -414,6 +415,23 @@ export async function PATCH(
       );
     }
 
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "STAFF_ROLES_UPDATED",
+      entityType: "User",
+      entityId: staff.id,
+      summary: `${staff.firstName} ${staff.lastName}'s hotel roles were updated`,
+      metadata: {
+        staffName: `${staff.firstName} ${staff.lastName}`,
+        staffEmail: staff.email,
+        previousRoles: currentAssignments.map(
+          (assignment) => assignment.Role.name,
+        ),
+        nextRoles: staff.roles.map((role) => role.name),
+      },
+    });
+
     return NextResponse.json({
       message: "Staff member updated successfully",
       staff,
@@ -579,6 +597,24 @@ export async function DELETE(
           userId: staffId,
         },
       });
+    });
+
+    const staffUser = existingAssignments[0].User;
+
+    await createAuditLog({
+      hotelId,
+      actorUserId: auth.user.id,
+      action: "STAFF_REMOVED",
+      entityType: "User",
+      entityId: staffUser.id,
+      summary: `${staffUser.firstName} ${staffUser.lastName} was removed from hotel staff`,
+      metadata: {
+        staffName: `${staffUser.firstName} ${staffUser.lastName}`,
+        staffEmail: staffUser.email,
+        previousRoles: existingAssignments.map(
+          (assignment) => assignment.Role.name,
+        ),
+      },
     });
 
     return NextResponse.json({

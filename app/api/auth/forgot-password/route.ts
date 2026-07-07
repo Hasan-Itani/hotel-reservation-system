@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendPasswordResetEmail } from "@/lib/email";
 import { getClientIp } from "@/lib/getClientIp";
 import {
   createPasswordResetToken,
@@ -12,7 +13,14 @@ import { forgotPasswordSchema } from "@/lib/validators";
 export const dynamic = "force-dynamic";
 
 const PASSWORD_RESET_RESPONSE =
-  "If an active account exists for that email, a password reset link has been prepared.";
+  "If an active account exists for that email, password reset instructions have been sent.";
+
+function canExposeDevelopmentResetLink() {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.SHOW_DEV_RESET_LINK !== "false"
+  );
+}
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -99,12 +107,27 @@ export async function POST(request: Request) {
     });
 
     resetUrl = `${new URL(request.url).origin}/guest/reset-password?token=${encodeURIComponent(token)}`;
+
+    try {
+      const emailResult = await sendPasswordResetEmail({
+        to: parsed.data.email,
+        resetUrl,
+      });
+
+      if (!emailResult.sent && process.env.NODE_ENV === "production") {
+        console.error(
+          "Password reset email is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+        );
+      }
+    } catch (error) {
+      console.error("Password reset email failed", error);
+    }
   }
 
   return NextResponse.json(
     {
       message: PASSWORD_RESET_RESPONSE,
-      ...(resetUrl ? { resetUrl } : {}),
+      ...(resetUrl && canExposeDevelopmentResetLink() ? { resetUrl } : {}),
     },
     {
       headers: rateLimitHeaders(limiter),

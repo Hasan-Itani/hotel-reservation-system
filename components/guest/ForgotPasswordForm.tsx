@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
               href={resetUrl}
               className="mt-3 block break-all text-luxury-gold underline underline-offset-4"
             >
-              Open local reset link
+              Open development reset link
             </Link>
           ) : null}
         </div>

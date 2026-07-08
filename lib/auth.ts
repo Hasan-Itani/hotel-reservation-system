@@ -2,7 +2,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { createAuditLog } from "@/lib/auditLog";
 import { prisma } from "@/lib/prisma";
-import { loginSchema, type LoginInput } from "@/lib/validators";
+import { loginSchema } from "@/lib/validators";
 import { getSessionToken, signSession, verifySession } from "@/lib/session";
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -23,7 +23,7 @@ function isStaffOrAdminUser(user: {
   return user.userRoles.length > 0 || user.UserHotelRole.length > 0;
 }
 
-export async function authenticateUser(rawInput: LoginInput) {
+export async function authenticateUser(rawInput: unknown) {
   const parsed = loginSchema.safeParse(rawInput);
 
   if (!parsed.success) {

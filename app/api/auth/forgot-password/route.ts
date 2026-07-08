@@ -14,6 +14,8 @@ export const dynamic = "force-dynamic";
 
 const PASSWORD_RESET_RESPONSE =
   "If an active account exists for that email, password reset instructions have been sent.";
+const PASSWORD_RESET_ALREADY_SENT_RESPONSE =
+  "A password reset email was already sent recently. Check your inbox before requesting another one.";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
     if (existingActiveToken) {
       return NextResponse.json(
         {
-          message: PASSWORD_RESET_RESPONSE,
+          message: PASSWORD_RESET_ALREADY_SENT_RESPONSE,
         },
         {
           headers: rateLimitHeaders(limiter),

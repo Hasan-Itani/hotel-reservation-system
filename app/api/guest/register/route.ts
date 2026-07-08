@@ -13,6 +13,43 @@ import { guestRegisterSchema } from "@/lib/validators";
 
 export const dynamic = "force-dynamic";
 
+const VERIFICATION_ALREADY_SENT_RESPONSE =
+  "A verification email was already sent. Check your inbox before requesting another one.";
+
+async function sendVerificationEmail(input: {
+  email: string;
+  origin: string;
+  userId: string;
+}) {
+  const verificationToken = createEmailVerificationToken();
+  const verificationTokenHash = hashEmailVerificationToken(verificationToken);
+
+  await prisma.emailVerificationToken.create({
+    data: {
+      userId: input.userId,
+      tokenHash: verificationTokenHash,
+      expiresAt: getEmailVerificationExpiry(),
+    },
+  });
+
+  const verificationUrl = `${input.origin}/guest/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+  try {
+    const emailResult = await sendEmailVerificationEmail({
+      to: input.email,
+      verificationUrl,
+    });
+
+    if (!emailResult.sent && process.env.NODE_ENV === "production") {
+      console.error(
+        "Email verification is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+      );
+    }
+  } catch (error) {
+    console.error("Email verification failed", error);
+  }
+}
+
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
@@ -75,10 +112,57 @@ export async function POST(request: Request) {
     select: {
       id: true,
       deletedAt: true,
+      emailVerifiedAt: true,
+      status: true,
     },
   });
 
   if (existingUser && !existingUser.deletedAt) {
+    if (!existingUser.emailVerifiedAt && existingUser.status === "ACTIVE") {
+      const existingActiveToken =
+        await prisma.emailVerificationToken.findFirst({
+          where: {
+            userId: existingUser.id,
+            usedAt: null,
+            expiresAt: {
+              gt: new Date(),
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+      if (existingActiveToken) {
+        return NextResponse.json(
+          {
+            message: VERIFICATION_ALREADY_SENT_RESPONSE,
+          },
+          {
+            status: 200,
+            headers: rateLimitHeaders(limiter),
+          },
+        );
+      }
+
+      await sendVerificationEmail({
+        email,
+        origin: new URL(request.url).origin,
+        userId: existingUser.id,
+      });
+
+      return NextResponse.json(
+        {
+          message:
+            "Verification email sent. Check your inbox before signing in.",
+        },
+        {
+          status: 200,
+          headers: rateLimitHeaders(limiter),
+        },
+      );
+    }
+
     return NextResponse.json(
       { error: "An account with this email already exists" },
       {
@@ -100,10 +184,7 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const verificationToken = createEmailVerificationToken();
-  const verificationTokenHash = hashEmailVerificationToken(verificationToken);
-
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       firstName,
       lastName,
@@ -113,31 +194,17 @@ export async function POST(request: Request) {
       status: "ACTIVE",
       failedLoginAttempts: 0,
       lockedUntil: null,
-      emailVerificationTokens: {
-        create: {
-          tokenHash: verificationTokenHash,
-          expiresAt: getEmailVerificationExpiry(),
-        },
-      },
+    },
+    select: {
+      id: true,
     },
   });
 
-  const verificationUrl = `${new URL(request.url).origin}/guest/verify-email?token=${encodeURIComponent(verificationToken)}`;
-
-  try {
-    const emailResult = await sendEmailVerificationEmail({
-      to: email,
-      verificationUrl,
-    });
-
-    if (!emailResult.sent && process.env.NODE_ENV === "production") {
-      console.error(
-        "Email verification is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
-      );
-    }
-  } catch (error) {
-    console.error("Email verification failed", error);
-  }
+  await sendVerificationEmail({
+    email,
+    origin: new URL(request.url).origin,
+    userId: user.id,
+  });
 
   return NextResponse.json(
     {

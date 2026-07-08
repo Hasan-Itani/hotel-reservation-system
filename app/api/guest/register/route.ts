@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 
 const VERIFICATION_ALREADY_SENT_RESPONSE =
   "A verification email was already sent. Check your inbox before requesting another one.";
+const VERIFICATION_SEND_FAILED_RESPONSE =
+  "We could not send the verification email right now. Please try again later.";
 
 async function sendVerificationEmail(input: {
   email: string;
@@ -23,6 +25,7 @@ async function sendVerificationEmail(input: {
 }) {
   const verificationToken = createEmailVerificationToken();
   const verificationTokenHash = hashEmailVerificationToken(verificationToken);
+  const verificationUrl = `${input.origin}/guest/verify-email?token=${encodeURIComponent(verificationToken)}`;
 
   await prisma.emailVerificationToken.create({
     data: {
@@ -32,22 +35,30 @@ async function sendVerificationEmail(input: {
     },
   });
 
-  const verificationUrl = `${input.origin}/guest/verify-email?token=${encodeURIComponent(verificationToken)}`;
+  const emailResult = await sendEmailVerificationEmail({
+    to: input.email,
+    verificationUrl,
+  });
 
-  try {
-    const emailResult = await sendEmailVerificationEmail({
-      to: input.email,
-      verificationUrl,
+  if (!emailResult.sent) {
+    await prisma.emailVerificationToken.updateMany({
+      where: {
+        tokenHash: verificationTokenHash,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
     });
 
-    if (!emailResult.sent && process.env.NODE_ENV === "production") {
-      console.error(
-        "Email verification is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
-      );
-    }
-  } catch (error) {
-    console.error("Email verification failed", error);
+    console.error(
+      "Email verification is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+    );
+
+    return false;
   }
+
+  return true;
 }
 
 export async function POST(request: Request) {
@@ -145,11 +156,39 @@ export async function POST(request: Request) {
         );
       }
 
-      await sendVerificationEmail({
-        email,
-        origin: new URL(request.url).origin,
-        userId: existingUser.id,
-      });
+      let sent = false;
+
+      try {
+        sent = await sendVerificationEmail({
+          email,
+          origin: new URL(request.url).origin,
+          userId: existingUser.id,
+        });
+      } catch (error) {
+        console.error("Email verification failed", error);
+
+        await prisma.emailVerificationToken.updateMany({
+          where: {
+            userId: existingUser.id,
+            usedAt: null,
+          },
+          data: {
+            usedAt: new Date(),
+          },
+        });
+      }
+
+      if (!sent) {
+        return NextResponse.json(
+          {
+            error: VERIFICATION_SEND_FAILED_RESPONSE,
+          },
+          {
+            status: 503,
+            headers: rateLimitHeaders(limiter),
+          },
+        );
+      }
 
       return NextResponse.json(
         {
@@ -200,11 +239,47 @@ export async function POST(request: Request) {
     },
   });
 
-  await sendVerificationEmail({
-    email,
-    origin: new URL(request.url).origin,
-    userId: user.id,
-  });
+  try {
+    const sent = await sendVerificationEmail({
+      email,
+      origin: new URL(request.url).origin,
+      userId: user.id,
+    });
+
+    if (!sent) {
+      return NextResponse.json(
+        {
+          error: VERIFICATION_SEND_FAILED_RESPONSE,
+        },
+        {
+          status: 503,
+          headers: rateLimitHeaders(limiter),
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Email verification failed", error);
+
+    await prisma.emailVerificationToken.updateMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json(
+      {
+        error: VERIFICATION_SEND_FAILED_RESPONSE,
+      },
+      {
+        status: 503,
+        headers: rateLimitHeaders(limiter),
+      },
+    );
+  }
 
   return NextResponse.json(
     {

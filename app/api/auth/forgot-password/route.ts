@@ -16,6 +16,8 @@ const PASSWORD_RESET_RESPONSE =
   "If an active account exists for that email, password reset instructions have been sent.";
 const PASSWORD_RESET_ALREADY_SENT_RESPONSE =
   "A password reset email was already sent recently. Check your inbox before requesting another one.";
+const PASSWORD_RESET_SEND_FAILED_RESPONSE =
+  "We could not send the password reset email right now. Please try again later.";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -100,11 +102,65 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = createPasswordResetToken();
-    const tokenHash = hashPasswordResetToken(token);
+    try {
+      const token = createPasswordResetToken();
+      const tokenHash = hashPasswordResetToken(token);
+      const resetUrl = `${new URL(request.url).origin}/guest/reset-password?token=${encodeURIComponent(token)}`;
 
-    await prisma.$transaction(async (tx) => {
-      await tx.passwordResetToken.updateMany({
+      await prisma.$transaction(async (tx) => {
+        await tx.passwordResetToken.updateMany({
+          where: {
+            userId: user.id,
+            usedAt: null,
+          },
+          data: {
+            usedAt: new Date(),
+          },
+        });
+
+        await tx.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            tokenHash,
+            expiresAt: getPasswordResetExpiry(),
+          },
+        });
+      });
+
+      const emailResult = await sendPasswordResetEmail({
+        to: parsed.data.email,
+        resetUrl,
+      });
+
+      if (!emailResult.sent) {
+        await prisma.passwordResetToken.updateMany({
+          where: {
+            tokenHash,
+            usedAt: null,
+          },
+          data: {
+            usedAt: new Date(),
+          },
+        });
+
+        console.error(
+          "Password reset email is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+        );
+
+        return NextResponse.json(
+          {
+            error: PASSWORD_RESET_SEND_FAILED_RESPONSE,
+          },
+          {
+            status: 503,
+            headers: rateLimitHeaders(limiter),
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Password reset email failed", error);
+
+      await prisma.passwordResetToken.updateMany({
         where: {
           userId: user.id,
           usedAt: null,
@@ -114,30 +170,15 @@ export async function POST(request: Request) {
         },
       });
 
-      await tx.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          tokenHash,
-          expiresAt: getPasswordResetExpiry(),
+      return NextResponse.json(
+        {
+          error: PASSWORD_RESET_SEND_FAILED_RESPONSE,
         },
-      });
-    });
-
-    const resetUrl = `${new URL(request.url).origin}/guest/reset-password?token=${encodeURIComponent(token)}`;
-
-    try {
-      const emailResult = await sendPasswordResetEmail({
-        to: parsed.data.email,
-        resetUrl,
-      });
-
-      if (!emailResult.sent && process.env.NODE_ENV === "production") {
-        console.error(
-          "Password reset email is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
-        );
-      }
-    } catch (error) {
-      console.error("Password reset email failed", error);
+        {
+          status: 503,
+          headers: rateLimitHeaders(limiter),
+        },
+      );
     }
   }
 

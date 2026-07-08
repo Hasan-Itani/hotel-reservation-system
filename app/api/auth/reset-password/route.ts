@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
 import { hashPasswordResetToken } from "@/lib/passwordReset";
 import { prisma } from "@/lib/prisma";
@@ -114,6 +115,17 @@ export async function POST(request: Request) {
         usedAt: new Date(),
       },
     });
+
+    await createAuditLog(
+      {
+        actorUserId: resetToken.user.id,
+        action: "PASSWORD_CHANGED",
+        entityType: "User",
+        entityId: resetToken.user.id,
+        summary: "Password was changed using a reset link",
+      },
+      tx,
+    );
   });
 
   return NextResponse.json(

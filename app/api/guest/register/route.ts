@@ -6,6 +6,7 @@ import {
   hashEmailVerificationToken,
 } from "@/lib/emailVerification";
 import { sendEmailVerificationEmail } from "@/lib/email";
+import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
@@ -57,6 +58,17 @@ async function sendVerificationEmail(input: {
 
     return false;
   }
+
+  await createAuditLog({
+    actorUserId: input.userId,
+    action: "EMAIL_VERIFICATION_SENT",
+    entityType: "User",
+    entityId: input.userId,
+    summary: `Verification email was sent to ${input.email}`,
+    metadata: {
+      email: input.email,
+    },
+  });
 
   return true;
 }
@@ -236,6 +248,18 @@ export async function POST(request: Request) {
     },
     select: {
       id: true,
+    },
+  });
+
+  await createAuditLog({
+    actorUserId: user.id,
+    action: "GUEST_REGISTERED",
+    entityType: "User",
+    entityId: user.id,
+    summary: `${firstName} ${lastName} created a guest account`,
+    metadata: {
+      email,
+      phone,
     },
   });
 

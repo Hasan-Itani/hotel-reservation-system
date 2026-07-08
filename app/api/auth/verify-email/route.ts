@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
 import { hashEmailVerificationToken } from "@/lib/emailVerification";
 import { prisma } from "@/lib/prisma";
@@ -107,6 +108,17 @@ export async function POST(request: Request) {
         usedAt: new Date(),
       },
     });
+
+    await createAuditLog(
+      {
+        actorUserId: verificationToken.user.id,
+        action: "EMAIL_VERIFIED",
+        entityType: "User",
+        entityId: verificationToken.user.id,
+        summary: "Email address was verified",
+      },
+      tx,
+    );
   });
 
   return NextResponse.json(

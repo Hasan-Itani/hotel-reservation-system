@@ -1,5 +1,6 @@
 import "server-only";
 import bcrypt from "bcryptjs";
+import { createAuditLog } from "@/lib/auditLog";
 import { prisma } from "@/lib/prisma";
 import { loginSchema, type LoginInput } from "@/lib/validators";
 import { getSessionToken, signSession, verifySession } from "@/lib/session";
@@ -105,6 +106,20 @@ export async function authenticateUser(rawInput: LoginInput) {
         lockedUntil: shouldLock ? lockUntilDate() : null,
       },
     });
+
+    if (shouldLock) {
+      await createAuditLog({
+        actorUserId: user.id,
+        action: "ACCOUNT_LOCKED",
+        entityType: "User",
+        entityId: user.id,
+        summary: "Account was locked after too many failed login attempts",
+        metadata: {
+          email: user.email,
+          lockMinutes: LOCK_MINUTES,
+        },
+      });
+    }
 
     return {
       ok: false as const,

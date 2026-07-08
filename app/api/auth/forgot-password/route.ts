@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAuditLog } from "@/lib/auditLog";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getClientIp } from "@/lib/getClientIp";
 import {
@@ -157,6 +158,17 @@ export async function POST(request: Request) {
           },
         );
       }
+
+      await createAuditLog({
+        actorUserId: user.id,
+        action: "PASSWORD_RESET_REQUESTED",
+        entityType: "User",
+        entityId: user.id,
+        summary: "Password reset email was sent",
+        metadata: {
+          email: parsed.data.email,
+        },
+      });
     } catch (error) {
       console.error("Password reset email failed", error);
 

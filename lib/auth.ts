@@ -142,6 +142,7 @@ export async function authenticateUser(rawInput: unknown) {
   const token = await signSession({
     sub: user.id,
     email: user.email,
+    sessionVersion: user.sessionVersion,
   });
 
   return {
@@ -192,7 +193,12 @@ export async function getCurrentAuthUser() {
       },
     });
 
-    if (!user || user.deletedAt || user.status !== "ACTIVE") {
+    if (
+      !user ||
+      user.deletedAt ||
+      user.status !== "ACTIVE" ||
+      user.sessionVersion !== payload.sessionVersion
+    ) {
       return null;
     }
 

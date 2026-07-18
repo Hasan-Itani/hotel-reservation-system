@@ -101,6 +101,9 @@ export async function POST(request: Request) {
       },
       data: {
         passwordHash,
+        sessionVersion: {
+          increment: 1,
+        },
         failedLoginAttempts: 0,
         lockedUntil: null,
       },

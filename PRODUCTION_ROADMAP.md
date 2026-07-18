@@ -51,7 +51,7 @@ Legend:
 - [x] Scope normal login rate limiting by account/email instead of blocking every login from the same IP.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [ ] Replace in-memory rate limiting with Redis/Upstash.
-- [ ] Add session versioning or session invalidation after password change.
+- [x] Add session versioning and invalidate existing sessions after password reset.
 - [ ] Add safer account unlock/admin unlock workflow.
 - [ ] Add auth/security event filters in the audit UI.
 - [ ] Add stronger password policy UI.
@@ -138,7 +138,7 @@ Legend:
 
 ## Phase 8: Operations And Deployment
 
-- [ ] Clean production README with screenshots.
+- [~] Production README exists; screenshots still need to be added.
 - [ ] Add deployment instructions.
 - [ ] Add environment variable documentation.
 - [ ] Document Prisma migration workflow.
@@ -155,20 +155,20 @@ Legend:
 ## Phase 9: Portfolio And Hiring Readiness
 
 - [~] GitHub repository exists.
-- [ ] Rewrite README from default Next.js text.
+- [x] Rewrite README from default Next.js text.
 - [ ] Add screenshots or demo GIFs.
-- [ ] Add feature list.
-- [ ] Add architecture notes.
-- [ ] Add setup instructions.
-- [ ] Add known limitations section.
+- [x] Add feature list.
+- [x] Add architecture notes.
+- [x] Add setup instructions.
+- [x] Add known limitations section.
 - [ ] Add live demo link after deployment.
 - [ ] Update CV project section with this project.
 
 ## Next Recommended Work
 
-1. Add auth/security event filters to the audit page.
-2. Add Redis/Upstash-backed rate limiting.
-3. Rewrite `README.md` so the GitHub repo is presentable.
+1. Add safer account unlock/admin unlock workflow.
+2. Add auth/security event filters to the audit page.
+3. Add Redis/Upstash-backed rate limiting.
 4. Add screenshots to the README.
 5. Continue toward CMS and admin dashboard stats.
 

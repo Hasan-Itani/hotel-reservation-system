@@ -16,6 +16,7 @@ const secretKey = new TextEncoder().encode(secret);
 export type SessionPayload = {
   sub: string;
   email: string;
+  sessionVersion: number;
 };
 
 export async function signSession(payload: SessionPayload) {

@@ -85,6 +85,10 @@ export function canViewGuests(user: AuthUser, hotelId: string) {
   );
 }
 
+export function canUnlockGuestAccounts(user: AuthUser, hotelId: string) {
+  return hasHotelRole(user, hotelId, HOTEL_ROLES.HOTEL_ADMIN);
+}
+
 export function canViewAudit(user: AuthUser, hotelId: string) {
   return (
     hasHotelRole(user, hotelId, HOTEL_ROLES.HOTEL_ADMIN) ||

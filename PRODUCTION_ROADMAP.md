@@ -52,7 +52,7 @@ Legend:
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [ ] Replace in-memory rate limiting with Redis/Upstash.
 - [x] Add session versioning and invalidate existing sessions after password reset.
-- [ ] Add safer account unlock/admin unlock workflow.
+- [x] Add safer guest account unlock workflow for hotel admins.
 - [ ] Add auth/security event filters in the audit UI.
 - [ ] Add stronger password policy UI.
 
@@ -166,9 +166,9 @@ Legend:
 
 ## Next Recommended Work
 
-1. Add safer account unlock/admin unlock workflow.
-2. Add auth/security event filters to the audit page.
-3. Add Redis/Upstash-backed rate limiting.
+1. Add auth/security event filters to the audit page.
+2. Add Redis/Upstash-backed rate limiting.
+3. Add stronger password policy UI.
 4. Add screenshots to the README.
 5. Continue toward CMS and admin dashboard stats.
 

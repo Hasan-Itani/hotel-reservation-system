@@ -642,6 +642,9 @@ export type AdminGuestListItem = {
   email: string;
   phone: string | null;
   status: string | null;
+  failedLoginAttempts: number | null;
+  lockedUntil: string | null;
+  canUnlock: boolean;
   accountCreatedAt: string | null;
   totalReservations: number;
   totalBooked: DecimalJson;
@@ -653,6 +656,15 @@ export type AdminGuestsResponse = {
   hotelId: string;
   hotelName: string;
   guests: AdminGuestListItem[];
+};
+
+export type AdminGuestUnlockResponse = {
+  message: string;
+  guest: {
+    id: string;
+    failedLoginAttempts: number;
+    lockedUntil: string | null;
+  };
 };
 
 export type AuditLogActor = {

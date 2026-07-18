@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { clientFetchJson } from "@/lib/frontend/api-client";
 import { formatMoney } from "@/lib/frontend/format";
 import type {
+  AdminGuestUnlockResponse,
   AdminGuestListItem,
   Hotel,
   ReservationStatus,
@@ -15,6 +18,7 @@ import type {
 type AdminGuestsClientProps = {
   hotel: Hotel;
   initialGuests: AdminGuestListItem[];
+  canUnlockGuestAccounts: boolean;
 };
 
 function formatDate(value: string | null | undefined) {
@@ -46,17 +50,22 @@ function getStatusBadgeVariant(
 export function AdminGuestsClient({
   hotel,
   initialGuests,
+  canUnlockGuestAccounts,
 }: AdminGuestsClientProps) {
+  const [guests, setGuests] = useState(initialGuests);
   const [search, setSearch] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [unlockingUserId, setUnlockingUserId] = useState<string | null>(null);
 
   const filteredGuests = useMemo(() => {
     const value = search.trim().toLowerCase();
 
     if (!value) {
-      return initialGuests;
+      return guests;
     }
 
-    return initialGuests.filter((guest) => {
+    return guests.filter((guest) => {
       const fullName = `${guest.firstName} ${guest.lastName}`.toLowerCase();
 
       return (
@@ -65,7 +74,47 @@ export function AdminGuestsClient({
         (guest.phone || "").toLowerCase().includes(value)
       );
     });
-  }, [initialGuests, search]);
+  }, [guests, search]);
+
+  async function handleUnlock(guest: AdminGuestListItem) {
+    if (!canUnlockGuestAccounts || !guest.userId || !guest.canUnlock) {
+      return;
+    }
+
+    setActionMessage("");
+    setActionError("");
+    setUnlockingUserId(guest.userId);
+
+    try {
+      const data = await clientFetchJson<AdminGuestUnlockResponse>(
+        `/api/admin/hotels/${hotel.id}/guests/${guest.userId}/unlock`,
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        },
+      );
+
+      setGuests((currentGuests) =>
+        currentGuests.map((item) =>
+          item.userId === data.guest.id
+            ? {
+                ...item,
+                failedLoginAttempts: data.guest.failedLoginAttempts,
+                lockedUntil: data.guest.lockedUntil,
+                canUnlock: false,
+              }
+            : item,
+        ),
+      );
+      setActionMessage(data.message);
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Unable to unlock account",
+      );
+    } finally {
+      setUnlockingUserId(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -81,9 +130,21 @@ export function AdminGuestsClient({
         </div>
 
         <Badge variant="primary">
-          {initialGuests.length} guest{initialGuests.length === 1 ? "" : "s"}
+          {guests.length} guest{guests.length === 1 ? "" : "s"}
         </Badge>
       </section>
+
+      {actionMessage ? (
+        <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-semibold text-success">
+          {actionMessage}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
+          {actionError}
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -151,6 +212,28 @@ export function AdminGuestsClient({
                         {guest.accountLinked ? "Account" : "Fallback"}
                       </Badge>
                     </div>
+
+                    {guest.lockedUntil ? (
+                      <div className="mt-4 rounded-xl border border-danger/20 bg-danger/10 px-3 py-3">
+                        <p className="text-xs font-bold text-danger">
+                          Account locked until {formatDate(guest.lockedUntil)}
+                        </p>
+                        {canUnlockGuestAccounts &&
+                        guest.canUnlock &&
+                        guest.userId ? (
+                          <Button
+                            variant="secondary"
+                            className="mt-3 w-full"
+                            disabled={unlockingUserId === guest.userId}
+                            onClick={() => handleUnlock(guest)}
+                          >
+                            {unlockingUserId === guest.userId
+                              ? "Unlocking..."
+                              : "Unlock account"}
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                       <div className="rounded-xl bg-surface-muted px-3 py-3">
@@ -249,6 +332,11 @@ export function AdminGuestsClient({
                               Joined {formatDate(guest.accountCreatedAt)}
                             </p>
                           ) : null}
+                          {guest.lockedUntil ? (
+                            <p className="mt-2 text-xs font-semibold text-danger">
+                              Locked until {formatDate(guest.lockedUntil)}
+                            </p>
+                          ) : null}
                         </td>
 
                         <td className="py-4 pr-4 align-top text-sm text-muted-foreground">
@@ -305,14 +393,30 @@ export function AdminGuestsClient({
                         </td>
 
                         <td className="py-4 text-right align-top">
-                          <Link
-                            href={`/admin/reservations?hotelId=${hotel.id}&guestEmail=${encodeURIComponent(
-                              guest.email,
-                            )}`}
-                            className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
-                          >
-                            View reservations
-                          </Link>
+                          <div className="flex justify-end gap-2">
+                            {canUnlockGuestAccounts &&
+                            guest.canUnlock &&
+                            guest.userId ? (
+                              <Button
+                                variant="secondary"
+                                disabled={unlockingUserId === guest.userId}
+                                onClick={() => handleUnlock(guest)}
+                              >
+                                {unlockingUserId === guest.userId
+                                  ? "Unlocking..."
+                                  : "Unlock account"}
+                              </Button>
+                            ) : null}
+
+                            <Link
+                              href={`/admin/reservations?hotelId=${hotel.id}&guestEmail=${encodeURIComponent(
+                                guest.email,
+                              )}`}
+                              className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
+                            >
+                              View reservations
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -3,7 +3,10 @@ import { AdminGuestsClient } from "@/components/guests/AdminGuestsClient";
 import { Card, CardContent } from "@/components/ui/Card";
 import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
 import { serverFetchJson, ServerApiError } from "@/lib/frontend/api-server";
-import { canViewGuests } from "@/lib/frontend/permissions";
+import {
+  canUnlockGuestAccounts,
+  canViewGuests,
+} from "@/lib/frontend/permissions";
 import type { AdminGuestsResponse } from "@/lib/frontend/types";
 
 type GuestsPageProps = {
@@ -82,5 +85,11 @@ export default async function GuestsPage({ searchParams }: GuestsPageProps) {
     );
   }
 
-  return <AdminGuestsClient hotel={selectedHotel} initialGuests={guests} />;
+  return (
+    <AdminGuestsClient
+      hotel={selectedHotel}
+      initialGuests={guests}
+      canUnlockGuestAccounts={canUnlockGuestAccounts(user, selectedHotel.id)}
+    />
+  );
 }

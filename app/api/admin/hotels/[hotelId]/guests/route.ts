@@ -83,6 +83,8 @@ export async function GET(
           email: true,
           phone: true,
           status: true,
+          failedLoginAttempts: true,
+          lockedUntil: true,
           createdAt: true,
         },
       },
@@ -109,6 +111,9 @@ export async function GET(
       email: string;
       phone: string | null;
       status: string | null;
+      failedLoginAttempts: number | null;
+      lockedUntil: Date | null;
+      canUnlock: boolean;
       accountCreatedAt: Date | null;
       totalReservations: number;
       totalBooked: number;
@@ -124,8 +129,13 @@ export async function GET(
       } | null;
     }
   >();
+  const now = new Date();
 
   for (const reservation of reservations) {
+    const activeLockedUntil =
+      reservation.user?.lockedUntil && reservation.user.lockedUntil > now
+        ? reservation.user.lockedUntil
+        : null;
     const key = reservation.userId
       ? `user:${reservation.userId}`
       : `email:${reservation.guestEmail.toLowerCase()}`;
@@ -146,6 +156,9 @@ export async function GET(
         email: reservation.user?.email ?? reservation.guestEmail,
         phone: reservation.user?.phone ?? reservation.guestPhone,
         status: reservation.user?.status ?? null,
+        failedLoginAttempts: reservation.user?.failedLoginAttempts ?? null,
+        lockedUntil: activeLockedUntil,
+        canUnlock: Boolean(reservation.userId && activeLockedUntil),
         accountCreatedAt: reservation.user?.createdAt ?? null,
         totalReservations: 1,
         totalBooked: Number(reservation.total),

@@ -232,15 +232,17 @@ or real upload storage.
 ## Workflow for every task
 
 1. Run `git status`.
-2. Inspect relevant files.
-3. Do not edit yet.
-4. Give a short plan.
-5. Wait for approval if the task is broad or risky.
-6. Edit only required files.
-7. Run `npm run build`.
-8. If build fails, fix it before doing anything else.
-9. Summarize changed files.
-10. Commit only after build passes.
+2. Check `PRODUCTION_ROADMAP.md` before choosing or finishing production work.
+3. Inspect relevant files.
+4. Do not edit yet.
+5. Give a short plan.
+6. Wait for approval if the task is broad or risky.
+7. Edit only required files.
+8. Update `PRODUCTION_ROADMAP.md` when the task completes, partially completes, or changes production priorities. If there is no roadmap impact, say why.
+9. Run `npm run build`.
+10. If build fails, fix it before doing anything else.
+11. Summarize changed files.
+12. Commit only after build passes.
 
 ## Expected Codex response format
 
@@ -250,6 +252,9 @@ For each task, respond with:
 - Plan
 - Files changed
 - Build result
+- Roadmap updated or not, and why
+- Git commit/push result if applicable
+- What to test
 - Any follow-up needed
 
 ## User preference

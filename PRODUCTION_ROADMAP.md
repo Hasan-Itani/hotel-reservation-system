@@ -52,7 +52,7 @@ Legend:
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [ ] Replace in-memory rate limiting with Redis/Upstash.
 - [x] Add session versioning and invalidate existing sessions after password reset.
-- [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration date and time.
+- [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
 - [ ] Add auth/security event filters in the audit UI.
 - [ ] Add stronger password policy UI.
 

@@ -314,7 +314,7 @@ export function AdminGuestsClient({
                       <th className="py-3 pr-4 font-semibold">Reservations</th>
                       <th className="py-3 pr-4 font-semibold">Paid</th>
                       <th className="py-3 pr-4 font-semibold">Latest</th>
-                      <th className="py-3 text-right font-semibold">Action</th>
+                      <th className="w-48 py-3 text-right font-semibold">Action</th>
                     </tr>
                   </thead>
 
@@ -404,13 +404,14 @@ export function AdminGuestsClient({
                           )}
                         </td>
 
-                        <td className="py-4 text-right align-top">
-                          <div className="flex justify-end gap-2">
+                        <td className="w-48 py-4 text-right align-top">
+                          <div className="ml-auto flex w-48 flex-col gap-2">
                             {canUnlockGuestAccounts &&
                             guest.canUnlock &&
                             guest.userId ? (
                               <Button
                                 variant="secondary"
+                                className="w-full whitespace-nowrap"
                                 disabled={unlockingUserId === guest.userId}
                                 onClick={() => handleUnlock(guest)}
                               >
@@ -424,7 +425,7 @@ export function AdminGuestsClient({
                               href={`/admin/reservations?hotelId=${hotel.id}&guestEmail=${encodeURIComponent(
                                 guest.email,
                               )}`}
-                              className="inline-flex h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
+                              className="inline-flex h-10 w-full items-center justify-center whitespace-nowrap rounded-xl border border-border px-4 text-sm font-bold text-foreground transition hover:bg-surface-muted"
                             >
                               View reservations
                             </Link>

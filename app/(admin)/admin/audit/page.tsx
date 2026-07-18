@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminAuditClient } from "@/components/audit/AdminAuditClient";
+import { normalizeAuditEventCategory } from "@/lib/auditEvents";
 import { Card, CardContent } from "@/components/ui/Card";
 import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
 import { serverFetchJson, ServerApiError } from "@/lib/frontend/api-server";
@@ -9,6 +10,7 @@ import type { AdminAuditLogsResponse } from "@/lib/frontend/types";
 type AdminAuditPageProps = {
   searchParams?: Promise<{
     hotelId?: string;
+    eventCategory?: string;
     action?: string;
     entityType?: string;
     actorUserId?: string;
@@ -20,7 +22,9 @@ function buildAuditPath(
   params: Awaited<AdminAuditPageProps["searchParams"]>,
 ) {
   const query = new URLSearchParams();
+  const eventCategory = normalizeAuditEventCategory(params?.eventCategory);
 
+  if (eventCategory) query.set("eventCategory", eventCategory);
   if (params?.action) query.set("action", params.action);
   if (params?.entityType) query.set("entityType", params.entityType);
   if (params?.actorUserId) query.set("actorUserId", params.actorUserId);
@@ -108,6 +112,8 @@ export default async function AdminAuditPage({
       actionOptions={auditData.filters.actions}
       entityTypeOptions={auditData.filters.entityTypes}
       initialFilters={{
+        eventCategory:
+          normalizeAuditEventCategory(params?.eventCategory) || "",
         action: params?.action || "",
         entityType: params?.entityType || "",
         actorUserId: params?.actorUserId || "",

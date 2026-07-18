@@ -1,4 +1,10 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import {
+  buildAuditCategoryWhere,
+  buildHotelAuditVisibilityWhere,
+  normalizeAuditEventCategory,
+} from "@/lib/auditEvents";
 import { prisma } from "@/lib/prisma";
 import { requireHotelAccess } from "@/lib/guards";
 import { hasGlobalRole, hasHotelRole, type AuthUser } from "@/lib/permissions";
@@ -63,13 +69,21 @@ export async function GET(
   const action = url.searchParams.get("action") || undefined;
   const entityType = url.searchParams.get("entityType") || undefined;
   const actorUserId = url.searchParams.get("actorUserId") || undefined;
+  const eventCategory = normalizeAuditEventCategory(
+    url.searchParams.get("eventCategory"),
+  );
   const limit = normalizeLimit(url.searchParams.get("limit"));
+  const visibilityWhere = buildHotelAuditVisibilityWhere(hotelId);
+  const whereConditions: Prisma.AuditLogWhereInput[] = [visibilityWhere];
+  const categoryWhere = buildAuditCategoryWhere(eventCategory);
 
-  const where = {
-    hotelId,
-    ...(action ? { action } : {}),
-    ...(entityType ? { entityType } : {}),
-    ...(actorUserId ? { actorUserId } : {}),
+  if (categoryWhere) whereConditions.push(categoryWhere);
+  if (action) whereConditions.push({ action });
+  if (entityType) whereConditions.push({ entityType });
+  if (actorUserId) whereConditions.push({ actorUserId });
+
+  const where: Prisma.AuditLogWhereInput = {
+    AND: whereConditions,
   };
 
   const [logs, actionRows, entityTypeRows] = await Promise.all([
@@ -100,9 +114,7 @@ export async function GET(
       take: limit,
     }),
     prisma.auditLog.findMany({
-      where: {
-        hotelId,
-      },
+      where: visibilityWhere,
       distinct: ["action"],
       select: {
         action: true,
@@ -112,9 +124,7 @@ export async function GET(
       },
     }),
     prisma.auditLog.findMany({
-      where: {
-        hotelId,
-      },
+      where: visibilityWhere,
       distinct: ["entityType"],
       select: {
         entityType: true,

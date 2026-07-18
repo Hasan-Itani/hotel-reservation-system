@@ -48,12 +48,13 @@ Legend:
   - `PASSWORD_RESET_REQUESTED`
   - `PASSWORD_CHANGED`
   - `ACCOUNT_LOCKED`
+  - `ACCOUNT_UNLOCKED`
 - [x] Scope normal login rate limiting by account/email instead of blocking every login from the same IP.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [ ] Replace in-memory rate limiting with Redis/Upstash.
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
-- [ ] Add auth/security event filters in the audit UI.
+- [x] Add auth/security event filters in the audit UI, scoped to users connected to the selected hotel.
 - [ ] Add stronger password policy UI.
 
 ## Phase 3: Real Notifications
@@ -166,11 +167,10 @@ Legend:
 
 ## Next Recommended Work
 
-1. Add auth/security event filters to the audit page.
-2. Add Redis/Upstash-backed rate limiting.
-3. Add stronger password policy UI.
-4. Add screenshots to the README.
-5. Continue toward CMS and admin dashboard stats.
+1. Add Redis/Upstash-backed rate limiting.
+2. Add stronger password policy UI.
+3. Add screenshots to the README.
+4. Continue toward CMS and admin dashboard stats.
 
 ## Testing Checklist After Auth Changes
 
@@ -182,4 +182,4 @@ Legend:
 - Login with the new password.
 - Try 5 wrong passwords for one account and confirm only that account is locked.
 - Login with admin account after guest lockout and confirm it is not blocked.
-- Check `/admin/audit` for auth events.
+- Check `/admin/audit` and filter Activity area by Authentication & security.

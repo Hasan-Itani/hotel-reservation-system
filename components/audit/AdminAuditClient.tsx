@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import {
+  AUDIT_EVENT_CATEGORIES,
+  isAuthSecurityAuditAction,
+} from "@/lib/auditEvents";
 import type { AuditLogItem, Hotel } from "@/lib/frontend/types";
 
 type AdminAuditClientProps = {
@@ -13,6 +17,7 @@ type AdminAuditClientProps = {
   actionOptions: string[];
   entityTypeOptions: string[];
   initialFilters: {
+    eventCategory: string;
     action: string;
     entityType: string;
     actorUserId: string;
@@ -118,13 +123,26 @@ export function AdminAuditClient({
 }: AdminAuditClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [eventCategory, setEventCategory] = useState(
+    initialFilters.eventCategory,
+  );
   const [action, setAction] = useState(initialFilters.action);
   const [entityType, setEntityType] = useState(initialFilters.entityType);
   const [actorUserId, setActorUserId] = useState(initialFilters.actorUserId);
   const [selectedLogId, setSelectedLogId] = useState(initialLogs[0]?.id || "");
 
   const selectedLog =
-    initialLogs.find((log) => log.id === selectedLogId) || null;
+    initialLogs.find((log) => log.id === selectedLogId) ||
+    initialLogs[0] ||
+    null;
+
+  const filteredActionOptions = useMemo(() => {
+    if (eventCategory !== AUDIT_EVENT_CATEGORIES.AUTH_SECURITY) {
+      return actionOptions;
+    }
+
+    return actionOptions.filter(isAuthSecurityAuditAction);
+  }, [actionOptions, eventCategory]);
 
   const actorOptions = useMemo(() => {
     const actors = new Map<string, string>();
@@ -142,6 +160,12 @@ export function AdminAuditClient({
     const query = new URLSearchParams(searchParams.toString());
 
     query.set("hotelId", hotel.id);
+
+    if (eventCategory) {
+      query.set("eventCategory", eventCategory);
+    } else {
+      query.delete("eventCategory");
+    }
 
     if (action) {
       query.set("action", action);
@@ -165,6 +189,7 @@ export function AdminAuditClient({
   }
 
   function clearFilters() {
+    setEventCategory("");
     setAction("");
     setEntityType("");
     setActorUserId("");
@@ -180,7 +205,7 @@ export function AdminAuditClient({
           </h1>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Review admin activity history for {hotel.name}.
+            Review administrative and account security activity for {hotel.name}.
           </p>
         </div>
 
@@ -195,7 +220,36 @@ export function AdminAuditClient({
         </CardHeader>
 
         <CardContent>
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-5">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-foreground">
+                Activity area
+              </span>
+
+              <select
+                value={eventCategory}
+                onChange={(event) => {
+                  const nextCategory = event.target.value;
+
+                  setEventCategory(nextCategory);
+
+                  if (
+                    nextCategory === AUDIT_EVENT_CATEGORIES.AUTH_SECURITY &&
+                    action &&
+                    !isAuthSecurityAuditAction(action)
+                  ) {
+                    setAction("");
+                  }
+                }}
+                className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary-soft"
+              >
+                <option value="">All activity</option>
+                <option value={AUDIT_EVENT_CATEGORIES.AUTH_SECURITY}>
+                  Authentication &amp; security
+                </option>
+              </select>
+            </label>
+
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-foreground">
                 Action
@@ -207,7 +261,7 @@ export function AdminAuditClient({
                 className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary-soft"
               >
                 <option value="">All actions</option>
-                {actionOptions.map((item) => (
+                {filteredActionOptions.map((item) => (
                   <option key={item} value={item}>
                     {formatLabel(item)}
                   </option>
@@ -292,13 +346,13 @@ export function AdminAuditClient({
                   No audit events found
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Admin actions will appear here after staff changes records.
+                  Administrative and account activity will appear here.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {initialLogs.map((log) => {
-                  const isSelected = log.id === selectedLogId;
+                  const isSelected = log.id === selectedLog?.id;
 
                   return (
                     <button

@@ -9,6 +9,7 @@ import {
   AUDIT_EVENT_CATEGORIES,
   isAuthSecurityAuditAction,
 } from "@/lib/auditEvents";
+import { isIsoDateTimeString } from "@/lib/auditDisplay";
 import type { AuditLogItem, Hotel } from "@/lib/frontend/types";
 
 type AdminAuditClientProps = {
@@ -99,7 +100,7 @@ function formatDetailValue(value: unknown): string {
   }
 
   if (typeof value === "string") {
-    return formatLabel(value);
+    return isIsoDateTimeString(value) ? formatDate(value) : formatLabel(value);
   }
 
   return String(value);

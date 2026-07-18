@@ -25,7 +25,7 @@ Legend:
 - [x] Harden public booking creation against concurrent overbooking.
 - [x] Add audit log foundation.
 - [x] Add admin audit page.
-- [x] Improve audit page wording so it is admin-friendly, not developer-only.
+- [x] Improve audit page wording and metadata dates so they are admin-friendly, not developer-only.
 - [x] Expand audit coverage for rooms, room types, staff, reservations, payments, and inquiries.
 
 ## Phase 2: Production Auth And Security

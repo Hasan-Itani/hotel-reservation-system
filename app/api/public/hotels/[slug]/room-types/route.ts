@@ -14,7 +14,7 @@ export async function GET(
   const { slug } = await params;
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `public-room-types:${ip}:${slug}`,
     windowMs: 5 * 60 * 1000,
     maxRequests: 120,

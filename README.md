@@ -125,6 +125,15 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 JWT_SECRET="replace_this_with_a_long_random_secret"
 ```
 
+Required in production for distributed rate limiting:
+
+```env
+UPSTASH_REDIS_REST_URL="https://your-database.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="your_upstash_rest_token"
+```
+
+Create an Upstash Redis database, then copy both values from its database details page. Local development uses an in-memory fallback when these variables are absent. Production intentionally refuses to use the in-memory fallback because it is not shared across server instances.
+
 Optional but needed for real auth emails:
 
 ```env

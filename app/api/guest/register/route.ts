@@ -76,7 +76,7 @@ async function sendVerificationEmail(input: {
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `guest-register:${ip}`,
     windowMs: 15 * 60 * 1000,
     maxRequests: 10,

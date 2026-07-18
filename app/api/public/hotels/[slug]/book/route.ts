@@ -82,7 +82,7 @@ export async function POST(
   const { slug } = await params;
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `public-booking-create:${ip}:${slug}`,
     windowMs: 10 * 60 * 1000,
     maxRequests: 5,

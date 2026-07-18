@@ -13,7 +13,7 @@ export async function GET(
   const { slug } = await params;
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `public-hotel-detail:${ip}:${slug}`,
     windowMs: 5 * 60 * 1000,
     maxRequests: 120,
@@ -84,7 +84,7 @@ export async function POST(
   const { slug } = await params;
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `public-hotel-contact:${ip}:${slug}`,
     windowMs: 10 * 60 * 1000,
     maxRequests: 10,

@@ -23,7 +23,7 @@ const PASSWORD_RESET_SEND_FAILED_RESPONSE =
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `forgot-password:${ip}`,
     windowMs: 15 * 60 * 1000,
     maxRequests: 5,

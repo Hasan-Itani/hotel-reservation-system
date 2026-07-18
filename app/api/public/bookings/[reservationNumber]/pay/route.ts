@@ -122,7 +122,7 @@ export async function POST(
 ) {
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `booking-pay:${ip}`,
     windowMs: 10 * 60 * 1000,
     maxRequests: 5,

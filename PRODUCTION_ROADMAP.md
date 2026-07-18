@@ -51,7 +51,8 @@ Legend:
   - `ACCOUNT_UNLOCKED`
 - [x] Scope normal login rate limiting by account/email instead of blocking every login from the same IP.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
-- [ ] Replace in-memory rate limiting with Redis/Upstash.
+- [~] Upstash-backed production rate limiting is implemented with a local-development fallback; production credentials and live cross-restart verification are still required.
+- [ ] Upgrade Next.js from 16.2.1 to a patched release; npm audit currently recommends 16.2.10.
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
 - [x] Add grouped audit activity filters for authentication/security, reservations/stays, rooms/inventory, payments, staff/access, and guest inquiries.
@@ -141,7 +142,7 @@ Legend:
 
 - [~] Production README exists; screenshots still need to be added.
 - [ ] Add deployment instructions.
-- [ ] Add environment variable documentation.
+- [~] Add environment variable documentation; database, auth, email, application URL, and Upstash variables are documented.
 - [ ] Document Prisma migration workflow.
 - [ ] Document admin bootstrap workflow.
 - [ ] Deploy to Vercel or another host.
@@ -151,7 +152,7 @@ Legend:
 - [ ] Add structured logging.
 - [ ] Add error tracking.
 - [ ] Add database backup and restore plan.
-- [ ] Run security review before real launch.
+- [~] Run security review before real launch; initial npm audit identified Next.js runtime advisories and Prisma CLI transitive advisories.
 
 ## Phase 9: Portfolio And Hiring Readiness
 
@@ -167,10 +168,11 @@ Legend:
 
 ## Next Recommended Work
 
-1. Add Redis/Upstash-backed rate limiting.
-2. Add stronger password policy UI.
-3. Add screenshots to the README.
-4. Continue toward CMS and admin dashboard stats.
+1. Configure Upstash credentials and verify distributed rate limiting across a server restart.
+2. Upgrade Next.js to a patched release and run regression checks.
+3. Add stronger password policy UI.
+4. Add screenshots to the README.
+5. Continue toward CMS and admin dashboard stats.
 
 ## Testing Checklist After Auth Changes
 
@@ -183,3 +185,4 @@ Legend:
 - Try 5 wrong passwords for one account and confirm only that account is locked.
 - Login with admin account after guest lockout and confirm it is not blocked.
 - Check `/admin/audit` and filter Activity area by Authentication & security.
+- With Upstash configured, exceed a login or reset limit and confirm repeated requests stay blocked across server restarts.

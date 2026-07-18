@@ -35,7 +35,7 @@ export async function GET(
 
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `booking-details:${ip}`,
     windowMs: 10 * 60 * 1000,
     maxRequests: 10,

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const parsed = loginSchema.safeParse(body);
   const emailKey = parsed.success ? parsed.data.email : "invalid";
 
-  const accountLimiter = rateLimit({
+  const accountLimiter = await rateLimit({
     key: `login-account:${emailKey}`,
     windowMs: 15 * 60 * 1000,
     maxRequests: 5,
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const ipLimiter = rateLimit({
+  const ipLimiter = await rateLimit({
     key: `login-ip:${ip}`,
     windowMs: 15 * 60 * 1000,
     maxRequests: 50,

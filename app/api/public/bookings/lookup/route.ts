@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
-  const limiter = rateLimit({
+  const limiter = await rateLimit({
     key: `booking-lookup:${ip}`,
     windowMs: 10 * 60 * 1000,
     maxRequests: 10,

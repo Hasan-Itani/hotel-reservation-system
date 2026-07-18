@@ -1,73 +1,185 @@
 # Production Roadmap
 
-This project is currently a stable MVP. The target is production-level hotel operations with CMS-managed public content, stronger reliability, analytics, and production security.
+This project is a stable MVP moving toward a production-level hotel reservation system. Use this file to track what is done, what is in progress, and what still needs work.
+
+Legend:
+
+- `[x]` Done
+- `[~]` In progress / partially done
+- `[ ]` Not started
+
+## Current Status
+
+- Stable MVP exists.
+- GitHub is connected.
+- Build, lint, and tests currently pass.
+- Production hardening is in progress.
+- Email sending works only for the Resend account email unless a real sending domain is verified.
 
 ## Phase 1: Stability Foundation
 
-- Add automated tests for pricing, availability, reservation status rules, auth/roles, and payment access.
-- Add CI checks for install, Prisma generation, lint, tests, and build.
-- Clean rough formatting and small code quality issues without broad refactors.
-- Harden booking creation against concurrent overbooking.
-- Add an audit log foundation for important admin actions.
+- [x] Add initial backend tests.
+- [x] Add test script.
+- [x] Add GitHub Actions CI.
+- [x] Confirm local build passes.
+- [x] Harden public booking creation against concurrent overbooking.
+- [x] Add audit log foundation.
+- [x] Add admin audit page.
+- [x] Improve audit page wording so it is admin-friendly, not developer-only.
+- [x] Expand audit coverage for rooms, room types, staff, reservations, payments, and inquiries.
 
 ## Phase 2: Production Auth And Security
 
-- Add password reset.
-- Add email verification.
-- Add session invalidation or session versioning.
-- Replace in-memory rate limiting with Redis-backed rate limiting.
-- Apply rate limits to login, booking, lookup, contact, and payment endpoints.
-- Add audit logging for admin changes.
+- [x] Add password reset token model.
+- [x] Add forgot password flow.
+- [x] Add reset password flow.
+- [x] Send password reset email through Resend.
+- [x] Stop showing reset links on the page.
+- [x] Add email verification token model.
+- [x] Add guest email verification flow.
+- [x] Block unverified guest login.
+- [x] Prevent duplicate reset emails while an active reset token exists.
+- [x] Prevent duplicate verification emails while an active verification token exists.
+- [x] Invalidate auth tokens when email sending fails, so users are not trapped.
+- [x] Add auth audit events:
+  - `GUEST_REGISTERED`
+  - `EMAIL_VERIFICATION_SENT`
+  - `EMAIL_VERIFIED`
+  - `PASSWORD_RESET_REQUESTED`
+  - `PASSWORD_CHANGED`
+  - `ACCOUNT_LOCKED`
+- [x] Scope normal login rate limiting by account/email instead of blocking every login from the same IP.
+- [~] Email provider is integrated, but testing is limited by Resend domain rules.
+- [ ] Replace in-memory rate limiting with Redis/Upstash.
+- [ ] Add session versioning or session invalidation after password change.
+- [ ] Add safer account unlock/admin unlock workflow.
+- [ ] Add auth/security event filters in the audit UI.
+- [ ] Add stronger password policy UI.
 
 ## Phase 3: Real Notifications
 
-- Integrate a production email provider.
-- Add email templates for booking confirmation, payment confirmation, cancellation, inquiry received, admin inquiry alert, password reset, and email verification.
-- Add notification logs and resend support.
+- [~] Resend integration exists for auth emails only.
+- [x] Password reset email.
+- [x] Email verification email.
+- [ ] Booking confirmation email.
+- [ ] Payment confirmation email.
+- [ ] Cancellation email.
+- [ ] Contact inquiry received email.
+- [ ] Admin inquiry alert email.
+- [ ] Notification log table.
+- [ ] Admin resend notification action.
+- [ ] Production sending domain verification.
 
 ## Phase 4: Real Payments
 
-- Integrate a real payment provider, likely Stripe.
-- Add payment sessions or payment intents.
-- Add verified webhook handling.
-- Store provider references and payment lifecycle events.
-- Add admin payment and refund tools.
+- [ ] Choose payment provider. Stripe is the likely default.
+- [ ] Add payment sessions or payment intents.
+- [ ] Add verified webhook handling.
+- [ ] Store provider references.
+- [ ] Store payment lifecycle events.
+- [ ] Replace mock/card-on-arrival behavior for online payments.
+- [ ] Add admin refund/payment correction tools.
 
 ## Phase 5: Full CMS
 
-- Add CMS models for hotel page content, SEO metadata, policies, contact text, and structured page sections.
-- Add a media library with uploads, alt text, categories, and ordering.
-- Add admin CMS screens for gallery, dining, amenities, hotel overview, room content, and public page sections.
-- Make public hotel pages read from CMS data instead of hardcoded content.
-- Use controlled structured sections before attempting any drag-and-drop builder.
+- [ ] Add CMS models for hotel overview content.
+- [ ] Add CMS models for SEO metadata.
+- [ ] Add CMS models for hotel policies.
+- [ ] Add CMS models for contact page content.
+- [ ] Add structured content sections.
+- [ ] Add media library with uploads.
+- [ ] Add image alt text, categories, ordering, and primary image support.
+- [ ] Add admin CMS screens for:
+  - Hotel overview
+  - Rooms content
+  - Gallery
+  - Dining
+  - Amenities
+  - Location/contact content
+- [ ] Make public hotel pages read from CMS data instead of hardcoded content.
+- [ ] Keep CMS structured before considering drag-and-drop editing.
 
 ## Phase 6: Admin Dashboard Upgrade
 
-- Add overview stats for check-ins, check-outs, occupancy, revenue, pending payments, new inquiries, and recent bookings.
-- Improve reservation workflows with filters, calendar/table views, room assignment, and quick status updates.
-- Add guest profiles with booking history, total spend, and notes.
-- Add payments, inquiries, staff, and audit dashboards.
+- [ ] Add admin overview stats:
+  - Today's check-ins
+  - Today's check-outs
+  - Occupancy
+  - Revenue
+  - Pending payments
+  - New inquiries
+  - Recent bookings
+- [ ] Improve reservation filters.
+- [ ] Add reservation calendar/table view.
+- [ ] Add room assignment workflow.
+- [ ] Add quick reservation status updates.
+- [ ] Add richer guest profiles with booking history, total spend, and notes.
+- [ ] Improve payments dashboard.
+- [ ] Improve inquiries dashboard.
+- [ ] Improve staff dashboard.
+- [ ] Improve audit/security dashboard.
 
 ## Phase 7: Analytics
 
-- Add booking analytics by date range, room type, cancellation rate, average stay length, and booking lead time.
-- Add revenue analytics by month, room type, payment status, and average booking value.
-- Add occupancy analytics by date range and room type utilization.
-- Add guest analytics for returning guests and lifetime value.
-- Add inquiry analytics by status and type.
+- [ ] Booking analytics by date range.
+- [ ] Booking analytics by room type.
+- [ ] Cancellation rate analytics.
+- [ ] Average stay length.
+- [ ] Booking lead time.
+- [ ] Revenue by month.
+- [ ] Revenue by room type.
+- [ ] Revenue by payment status.
+- [ ] Average booking value.
+- [ ] Occupancy by date range.
+- [ ] Room type utilization.
+- [ ] Returning guest analytics.
+- [ ] Guest lifetime value.
+- [ ] Inquiry analytics by status and type.
 
 ## Phase 8: Operations And Deployment
 
-- Add error tracking.
-- Add structured logging.
-- Add database backup and restore plan.
-- Separate local, staging, and production environments.
-- Document deployment, migrations, environment variables, and admin bootstrap.
-- Perform a security review before production launch.
+- [ ] Clean production README with screenshots.
+- [ ] Add deployment instructions.
+- [ ] Add environment variable documentation.
+- [ ] Document Prisma migration workflow.
+- [ ] Document admin bootstrap workflow.
+- [ ] Deploy to Vercel or another host.
+- [ ] Use production PostgreSQL.
+- [ ] Set up staging environment.
+- [ ] Set up production environment.
+- [ ] Add structured logging.
+- [ ] Add error tracking.
+- [ ] Add database backup and restore plan.
+- [ ] Run security review before real launch.
 
-## Current First Sprint
+## Phase 9: Portfolio And Hiring Readiness
 
-1. Add test script and first backend tests.
-2. Add GitHub Actions CI.
-3. Confirm lint, tests, and build pass.
-4. Then continue with booking concurrency hardening.
+- [~] GitHub repository exists.
+- [ ] Rewrite README from default Next.js text.
+- [ ] Add screenshots or demo GIFs.
+- [ ] Add feature list.
+- [ ] Add architecture notes.
+- [ ] Add setup instructions.
+- [ ] Add known limitations section.
+- [ ] Add live demo link after deployment.
+- [ ] Update CV project section with this project.
+
+## Next Recommended Work
+
+1. Add auth/security event filters to the audit page.
+2. Add Redis/Upstash-backed rate limiting.
+3. Rewrite `README.md` so the GitHub repo is presentable.
+4. Add screenshots to the README.
+5. Continue toward CMS and admin dashboard stats.
+
+## Testing Checklist After Auth Changes
+
+- Register with the allowed Resend test email.
+- Verify email.
+- Login after verification.
+- Request password reset.
+- Reset password.
+- Login with the new password.
+- Try 5 wrong passwords for one account and confirm only that account is locked.
+- Login with admin account after guest lockout and confirm it is not blocked.
+- Check `/admin/audit` for auth events.

@@ -1,41 +1,80 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  AUDIT_ACTIONS_BY_CATEGORY,
   AUDIT_EVENT_CATEGORIES,
+  AUDIT_EVENT_CATEGORY_OPTIONS,
   AUTH_SECURITY_AUDIT_ACTIONS,
   buildAuditCategoryWhere,
   buildHotelAuditVisibilityWhere,
-  isAuthSecurityAuditAction,
+  getAuditActionsForCategory,
+  isAuditActionInCategory,
   normalizeAuditEventCategory,
 } from "../lib/auditEvents";
 
 describe("audit event filters", () => {
-  it("recognizes authentication and security actions", () => {
-    for (const action of AUTH_SECURITY_AUDIT_ACTIONS) {
-      assert.equal(isAuthSecurityAuditAction(action), true);
-    }
+  it("defines a label and action list for every activity area", () => {
+    const categories = Object.values(AUDIT_EVENT_CATEGORIES);
 
-    assert.equal(isAuthSecurityAuditAction("ROOM_UPDATED"), false);
+    assert.deepEqual(
+      AUDIT_EVENT_CATEGORY_OPTIONS.map((option) => option.value),
+      categories,
+    );
+
+    for (const category of categories) {
+      assert.ok(AUDIT_ACTIONS_BY_CATEGORY[category].length > 0);
+    }
   });
 
-  it("normalizes supported event categories", () => {
+  it("keeps actions in one activity area", () => {
+    const actions = Object.values(AUDIT_ACTIONS_BY_CATEGORY).flat();
+
+    assert.equal(new Set(actions).size, actions.length);
+  });
+
+  it("recognizes actions in their category", () => {
     assert.equal(
-      normalizeAuditEventCategory("AUTH_SECURITY"),
-      AUDIT_EVENT_CATEGORIES.AUTH_SECURITY,
+      isAuditActionInCategory(
+        "ACCOUNT_LOCKED",
+        AUDIT_EVENT_CATEGORIES.AUTH_SECURITY,
+      ),
+      true,
     );
+    assert.equal(
+      isAuditActionInCategory(
+        "ROOM_UPDATED",
+        AUDIT_EVENT_CATEGORIES.ROOMS_INVENTORY,
+      ),
+      true,
+    );
+    assert.equal(
+      isAuditActionInCategory(
+        "ROOM_UPDATED",
+        AUDIT_EVENT_CATEGORIES.PAYMENTS,
+      ),
+      false,
+    );
+  });
+
+  it("normalizes all supported event categories", () => {
+    for (const category of Object.values(AUDIT_EVENT_CATEGORIES)) {
+      assert.equal(normalizeAuditEventCategory(category), category);
+    }
+
     assert.equal(normalizeAuditEventCategory("UNKNOWN"), undefined);
     assert.equal(normalizeAuditEventCategory(null), undefined);
   });
 
-  it("builds the authentication and security category condition", () => {
+  it("builds category conditions from the shared action lists", () => {
     assert.deepEqual(
-      buildAuditCategoryWhere(AUDIT_EVENT_CATEGORIES.AUTH_SECURITY),
+      buildAuditCategoryWhere(AUDIT_EVENT_CATEGORIES.PAYMENTS),
       {
         action: {
-          in: [...AUTH_SECURITY_AUDIT_ACTIONS],
+          in: [...AUDIT_ACTIONS_BY_CATEGORY.PAYMENTS],
         },
       },
     );
+    assert.equal(getAuditActionsForCategory(undefined), null);
     assert.equal(buildAuditCategoryWhere(undefined), null);
   });
 

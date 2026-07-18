@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import {
-  AUDIT_EVENT_CATEGORIES,
-  isAuthSecurityAuditAction,
+  AUDIT_EVENT_CATEGORY_OPTIONS,
+  isAuditActionInCategory,
+  normalizeAuditEventCategory,
 } from "@/lib/auditEvents";
 import { isIsoDateTimeString } from "@/lib/auditDisplay";
 import type { AuditLogItem, Hotel } from "@/lib/frontend/types";
@@ -138,11 +139,13 @@ export function AdminAuditClient({
     null;
 
   const filteredActionOptions = useMemo(() => {
-    if (eventCategory !== AUDIT_EVENT_CATEGORIES.AUTH_SECURITY) {
-      return actionOptions;
-    }
+    const normalizedCategory = normalizeAuditEventCategory(eventCategory);
 
-    return actionOptions.filter(isAuthSecurityAuditAction);
+    if (!normalizedCategory) return actionOptions;
+
+    return actionOptions.filter((item) =>
+      isAuditActionInCategory(item, normalizedCategory),
+    );
   }, [actionOptions, eventCategory]);
 
   const actorOptions = useMemo(() => {
@@ -234,10 +237,13 @@ export function AdminAuditClient({
 
                   setEventCategory(nextCategory);
 
+                  const normalizedCategory =
+                    normalizeAuditEventCategory(nextCategory);
+
                   if (
-                    nextCategory === AUDIT_EVENT_CATEGORIES.AUTH_SECURITY &&
+                    normalizedCategory &&
                     action &&
-                    !isAuthSecurityAuditAction(action)
+                    !isAuditActionInCategory(action, normalizedCategory)
                   ) {
                     setAction("");
                   }
@@ -245,9 +251,11 @@ export function AdminAuditClient({
                 className="h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-foreground shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary-soft"
               >
                 <option value="">All activity</option>
-                <option value={AUDIT_EVENT_CATEGORIES.AUTH_SECURITY}>
-                  Authentication &amp; security
-                </option>
+                {AUDIT_EVENT_CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
 

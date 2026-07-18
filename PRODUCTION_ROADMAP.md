@@ -54,7 +54,7 @@ Legend:
 - [ ] Replace in-memory rate limiting with Redis/Upstash.
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
-- [x] Add auth/security event filters in the audit UI, scoped to users connected to the selected hotel.
+- [x] Add grouped audit activity filters for authentication/security, reservations/stays, rooms/inventory, payments, staff/access, and guest inquiries.
 - [ ] Add stronger password policy UI.
 
 ## Phase 3: Real Notifications

@@ -31,6 +31,18 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 function formatStatus(status: ReservationStatus | string) {
   return status.replaceAll("_", " ");
 }
@@ -216,7 +228,7 @@ export function AdminGuestsClient({
                     {guest.lockedUntil ? (
                       <div className="mt-4 rounded-xl border border-danger/20 bg-danger/10 px-3 py-3">
                         <p className="text-xs font-bold text-danger">
-                          Account locked until {formatDate(guest.lockedUntil)}
+                          Account locked until {formatDateTime(guest.lockedUntil)}
                         </p>
                         {canUnlockGuestAccounts &&
                         guest.canUnlock &&
@@ -334,7 +346,7 @@ export function AdminGuestsClient({
                           ) : null}
                           {guest.lockedUntil ? (
                             <p className="mt-2 text-xs font-semibold text-danger">
-                              Locked until {formatDate(guest.lockedUntil)}
+                              Locked until {formatDateTime(guest.lockedUntil)}
                             </p>
                           ) : null}
                         </td>

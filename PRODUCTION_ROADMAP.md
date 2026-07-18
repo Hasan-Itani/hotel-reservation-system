@@ -51,7 +51,7 @@ Legend:
   - `ACCOUNT_UNLOCKED`
 - [x] Scope normal login rate limiting by account/email instead of blocking every login from the same IP.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
-- [~] Upstash-backed production rate limiting is implemented with a local-development fallback; production credentials and live cross-restart verification are still required.
+- [x] Upstash-backed production rate limiting is implemented with a local-development fallback and verified across a server restart.
 - [ ] Upgrade Next.js from 16.2.1 to a patched release; npm audit currently recommends 16.2.10.
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
@@ -168,11 +168,10 @@ Legend:
 
 ## Next Recommended Work
 
-1. Configure Upstash credentials and verify distributed rate limiting across a server restart.
-2. Upgrade Next.js to a patched release and run regression checks.
-3. Add stronger password policy UI.
-4. Add screenshots to the README.
-5. Continue toward CMS and admin dashboard stats.
+1. Upgrade Next.js to a patched release and run regression checks.
+2. Add stronger password policy UI.
+3. Add screenshots to the README.
+4. Continue toward CMS and admin dashboard stats.
 
 ## Testing Checklist After Auth Changes
 

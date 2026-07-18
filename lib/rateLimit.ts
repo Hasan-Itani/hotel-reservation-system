@@ -28,6 +28,8 @@ export type RateLimitRuntimeConfig = {
 
 export type RateLimitBackend = "memory" | "redis";
 
+export const UPSTASH_RATE_LIMIT_TIMEOUT_MS = 5000;
+
 declare global {
   var __rateLimitStore: Map<string, RateLimitEntry> | undefined;
 }
@@ -174,7 +176,7 @@ function getDistributedLimiter(
     ),
     prefix: `hotel-system:rate-limit:${cacheKey}`,
     analytics: false,
-    timeout: 1500,
+    timeout: UPSTASH_RATE_LIMIT_TIMEOUT_MS,
   });
 
   distributedLimiters.set(cacheKey, limiter);

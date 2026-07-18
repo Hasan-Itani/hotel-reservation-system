@@ -4,9 +4,14 @@ import {
   rateLimitHeaders,
   rateLimitInMemory,
   resolveRateLimitBackend,
+  UPSTASH_RATE_LIMIT_TIMEOUT_MS,
 } from "../lib/rateLimit";
 
 describe("rate limiting", () => {
+  it("allows enough time for a remote Redis request", () => {
+    assert.equal(UPSTASH_RATE_LIMIT_TIMEOUT_MS, 5000);
+  });
+
   it("uses memory locally when Redis is not configured", () => {
     assert.equal(resolveRateLimitBackend({ nodeEnv: "development" }), "memory");
     assert.equal(resolveRateLimitBackend({ nodeEnv: "test" }), "memory");

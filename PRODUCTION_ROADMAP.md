@@ -53,7 +53,7 @@ Legend:
 - [x] Scope password reset rate limiting by account/email, with a separate broader network abuse limit.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [x] Upstash-backed production rate limiting is implemented with a local-development fallback and verified across a server restart.
-- [ ] Upgrade Next.js from 16.2.1 to a patched release; npm audit currently recommends 16.2.10.
+- [x] Upgrade Next.js and eslint-config-next from 16.2.1 to patched release 16.2.10.
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
 - [x] Add grouped audit activity filters for authentication/security, reservations/stays, rooms/inventory, payments, staff/access, and guest inquiries.
@@ -153,7 +153,7 @@ Legend:
 - [ ] Add structured logging.
 - [ ] Add error tracking.
 - [ ] Add database backup and restore plan.
-- [~] Run security review before real launch; initial npm audit identified Next.js runtime advisories and Prisma CLI transitive advisories.
+- [~] Run security review before real launch; direct Next.js advisories are resolved, while npm audit still reports Prisma tooling and nested PostCSS transitive findings.
 
 ## Phase 9: Portfolio And Hiring Readiness
 
@@ -169,10 +169,9 @@ Legend:
 
 ## Next Recommended Work
 
-1. Upgrade Next.js to a patched release and run regression checks.
-2. Add stronger password policy UI.
-3. Add screenshots to the README.
-4. Continue toward CMS and admin dashboard stats.
+1. Add stronger password policy UI.
+2. Add screenshots to the README.
+3. Continue toward CMS and admin dashboard stats.
 
 ## Testing Checklist After Auth Changes
 

@@ -1,4 +1,21 @@
 import { z } from "zod";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/passwordPolicy";
+
+const newPasswordSchema = z
+  .string()
+  .min(PASSWORD_MIN_LENGTH, {
+    message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
+  })
+  .max(PASSWORD_MAX_LENGTH, {
+    message: `Password must not exceed ${PASSWORD_MAX_LENGTH} characters`,
+  })
+  .regex(/[a-z]/, { message: "Password must include a lowercase letter" })
+  .regex(/[A-Z]/, { message: "Password must include an uppercase letter" })
+  .regex(/\d/, { message: "Password must include a number" })
+  .regex(/[^A-Za-z0-9\s]/, { message: "Password must include a symbol" });
 
 const slugSchema = z
   .string()
@@ -93,7 +110,7 @@ export const forgotPasswordSchema = z
 export const resetPasswordSchema = z
   .object({
     token: z.string().trim().min(32).max(300),
-    password: z.string().min(8).max(100),
+    password: newPasswordSchema,
   })
   .strict();
 
@@ -117,7 +134,7 @@ export const guestRegisterSchema = z
         if (value === undefined) return null;
         return value.length === 0 ? null : value;
       }),
-    password: z.string().min(8).max(100),
+    password: newPasswordSchema,
   })
   .strict();
 

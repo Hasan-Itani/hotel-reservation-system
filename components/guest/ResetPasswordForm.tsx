@@ -4,6 +4,12 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { ResetPasswordResponse } from "@/lib/frontend/types";
+import {
+  getUnmetPasswordRequirements,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/passwordPolicy";
+import { PasswordPolicyChecklist } from "@/components/guest/PasswordPolicyChecklist";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -27,8 +33,15 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    const unmetRequirement = getUnmetPasswordRequirements(password)[0];
+
+    if (unmetRequirement) {
+      setError(`Password requires: ${unmetRequirement.label.toLowerCase()}`);
+      return;
+    }
+
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      setError(`Password must not exceed ${PASSWORD_MAX_LENGTH} characters`);
       return;
     }
 
@@ -90,7 +103,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="At least 8 characters"
+          placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+          minLength={PASSWORD_MIN_LENGTH}
+          maxLength={PASSWORD_MAX_LENGTH}
           className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
         />
       </label>
@@ -107,9 +122,15 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           placeholder="Re-enter your password"
+          maxLength={PASSWORD_MAX_LENGTH}
           className="h-12 w-full rounded-2xl border border-luxury-stone bg-white px-4 text-sm text-luxury-ink shadow-sm outline-none transition placeholder:text-slate-400 focus:border-luxury-gold focus:ring-4 focus:ring-luxury-gold-soft"
         />
       </label>
+
+      <PasswordPolicyChecklist
+        password={password}
+        confirmPassword={confirmPassword}
+      />
 
       <button
         type="submit"

@@ -57,7 +57,7 @@ Legend:
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
 - [x] Add grouped audit activity filters for authentication/security, reservations/stays, rooms/inventory, payments, staff/access, and guest inquiries.
-- [ ] Add stronger password policy UI.
+- [x] Add stronger password policy UI with shared registration/reset requirements and API enforcement.
 
 ## Phase 3: Real Notifications
 
@@ -170,9 +170,9 @@ Legend:
 
 ## Next Recommended Work
 
-1. Add stronger password policy UI.
-2. Add screenshots to the README.
-3. Continue toward CMS and admin dashboard stats.
+1. Add screenshots to the README.
+2. Continue toward CMS and admin dashboard stats.
+3. Continue broader application security review before launch.
 
 ## Testing Checklist After Auth Changes
 
@@ -180,7 +180,9 @@ Legend:
 - Verify email.
 - Login after verification.
 - Request password reset.
-- Reset password.
+- Confirm registration and password reset reject passwords missing any displayed requirement.
+- Confirm the live checklist marks every requirement and password match correctly.
+- Reset password with a valid 12+ character password containing uppercase, lowercase, number, and symbol.
 - Login with the new password.
 - Try 5 wrong passwords for one account and confirm only that account is locked.
 - Login with admin account after guest lockout and confirm it is not blocked.

@@ -4,6 +4,12 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { GuestRegisterResponse } from "@/lib/frontend/types";
+import {
+  getUnmetPasswordRequirements,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/passwordPolicy";
+import { PasswordPolicyChecklist } from "@/components/guest/PasswordPolicyChecklist";
 
 type RegisterFormState = {
   firstName: string;
@@ -49,8 +55,15 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
     setError("");
     setMessage("");
 
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters");
+    const unmetRequirement = getUnmetPasswordRequirements(form.password)[0];
+
+    if (unmetRequirement) {
+      setError(`Password requires: ${unmetRequirement.label.toLowerCase()}`);
+      return;
+    }
+
+    if (form.password.length > PASSWORD_MAX_LENGTH) {
+      setError(`Password must not exceed ${PASSWORD_MAX_LENGTH} characters`);
       return;
     }
 
@@ -172,7 +185,9 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
           autoComplete="new-password"
           value={form.password}
           onChange={(event) => updateForm("password", event.target.value)}
-          placeholder="At least 8 characters"
+          placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+          minLength={PASSWORD_MIN_LENGTH}
+          maxLength={PASSWORD_MAX_LENGTH}
           required
           className={inputClassName}
         />
@@ -191,10 +206,16 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
             updateForm("confirmPassword", event.target.value)
           }
           placeholder="Re-enter your password"
+          maxLength={PASSWORD_MAX_LENGTH}
           required
           className={inputClassName}
         />
       </label>
+
+      <PasswordPolicyChecklist
+        password={form.password}
+        confirmPassword={form.confirmPassword}
+      />
 
       <button
         type="submit"

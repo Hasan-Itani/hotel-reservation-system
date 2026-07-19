@@ -153,7 +153,8 @@ Legend:
 - [ ] Add structured logging.
 - [ ] Add error tracking.
 - [ ] Add database backup and restore plan.
-- [~] Run security review before real launch; direct Next.js advisories are resolved, while npm audit still reports Prisma tooling and nested PostCSS transitive findings.
+- [x] Resolve current npm dependency audit findings without force downgrades; production and full audits report zero vulnerabilities.
+- [~] Run broader application security review before real launch; dependency audit is complete.
 
 ## Phase 9: Portfolio And Hiring Readiness
 

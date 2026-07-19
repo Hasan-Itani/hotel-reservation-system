@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAuditLog } from "@/lib/auditLog";
+import {
+  AUTH_RATE_LIMIT_WINDOW_MS,
+  getPasswordResetAccountRateLimitKey,
+  getPasswordResetIpRateLimitKey,
+  PASSWORD_RESET_ACCOUNT_MAX_REQUESTS,
+  PASSWORD_RESET_IP_MAX_REQUESTS,
+} from "@/lib/authRateLimit";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getClientIp } from "@/lib/getClientIp";
 import {
@@ -23,13 +30,62 @@ const PASSWORD_RESET_SEND_FAILED_RESPONSE =
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
-  const limiter = await rateLimit({
-    key: `forgot-password:${ip}`,
-    windowMs: 15 * 60 * 1000,
-    maxRequests: 5,
-  });
+  let body: unknown;
 
-  if (!limiter.ok) {
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = forgotPasswordSchema.safeParse(body);
+
+  if (!parsed.success) {
+    const ipLimiter = await rateLimit({
+      key: getPasswordResetIpRateLimitKey(ip),
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxRequests: PASSWORD_RESET_IP_MAX_REQUESTS,
+    });
+
+    if (!ipLimiter.ok) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many password reset attempts from this network. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(ipLimiter.retryAfterSeconds),
+            ...rateLimitHeaders(ipLimiter),
+          },
+        },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: "Enter a valid email address",
+        details: parsed.error.flatten(),
+      },
+      { status: 400, headers: rateLimitHeaders(ipLimiter) },
+    );
+  }
+
+  const [accountLimiter, ipLimiter] = await Promise.all([
+    rateLimit({
+      key: getPasswordResetAccountRateLimitKey(parsed.data.email),
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxRequests: PASSWORD_RESET_ACCOUNT_MAX_REQUESTS,
+    }),
+    rateLimit({
+      key: getPasswordResetIpRateLimitKey(ip),
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxRequests: PASSWORD_RESET_IP_MAX_REQUESTS,
+    }),
+  ]);
+
+  if (!accountLimiter.ok) {
     return NextResponse.json(
       {
         error: "Too many password reset attempts. Please try again later.",
@@ -37,33 +93,26 @@ export async function POST(request: Request) {
       {
         status: 429,
         headers: {
-          "Retry-After": String(limiter.retryAfterSeconds),
-          ...rateLimitHeaders(limiter),
+          "Retry-After": String(accountLimiter.retryAfterSeconds),
+          ...rateLimitHeaders(accountLimiter),
         },
       },
     );
   }
 
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400, headers: rateLimitHeaders(limiter) },
-    );
-  }
-
-  const parsed = forgotPasswordSchema.safeParse(body);
-
-  if (!parsed.success) {
+  if (!ipLimiter.ok) {
     return NextResponse.json(
       {
-        error: "Enter a valid email address",
-        details: parsed.error.flatten(),
+        error:
+          "Too many password reset attempts from this network. Please try again later.",
       },
-      { status: 400, headers: rateLimitHeaders(limiter) },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(ipLimiter.retryAfterSeconds),
+          ...rateLimitHeaders(ipLimiter),
+        },
+      },
     );
   }
 
@@ -98,7 +147,7 @@ export async function POST(request: Request) {
           message: PASSWORD_RESET_ALREADY_SENT_RESPONSE,
         },
         {
-          headers: rateLimitHeaders(limiter),
+          headers: rateLimitHeaders(accountLimiter),
         },
       );
     }
@@ -154,7 +203,7 @@ export async function POST(request: Request) {
           },
           {
             status: 503,
-            headers: rateLimitHeaders(limiter),
+            headers: rateLimitHeaders(accountLimiter),
           },
         );
       }
@@ -188,7 +237,7 @@ export async function POST(request: Request) {
         },
         {
           status: 503,
-          headers: rateLimitHeaders(limiter),
+          headers: rateLimitHeaders(accountLimiter),
         },
       );
     }
@@ -199,7 +248,7 @@ export async function POST(request: Request) {
       message: PASSWORD_RESET_RESPONSE,
     },
     {
-      headers: rateLimitHeaders(limiter),
+      headers: rateLimitHeaders(accountLimiter),
     },
   );
 }

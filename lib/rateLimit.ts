@@ -76,15 +76,13 @@ export function resolveRateLimitBackend({
     );
   }
 
+  if (nodeEnv !== "production") return "memory";
+
   if (hasRedisUrl && hasRedisToken) return "redis";
 
-  if (nodeEnv === "production") {
-    throw new Error(
-      "Distributed rate limiting is required in production. Set the Upstash Redis environment variables.",
-    );
-  }
-
-  return "memory";
+  throw new Error(
+    "Distributed rate limiting is required in production. Set the Upstash Redis environment variables.",
+  );
 }
 
 export function rateLimitInMemory(

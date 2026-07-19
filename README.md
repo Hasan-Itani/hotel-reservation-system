@@ -124,6 +124,13 @@ Required:
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 JWT_SECRET="replace_this_with_a_long_random_secret"
 ```
+Generate `JWT_SECRET` locally with Node.js, then place the printed value in `.env`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+Changing `JWT_SECRET` invalidates existing login sessions.
 
 Required in production for distributed rate limiting:
 
@@ -132,7 +139,7 @@ UPSTASH_REDIS_REST_URL="https://your-database.upstash.io"
 UPSTASH_REDIS_REST_TOKEN="your_upstash_rest_token"
 ```
 
-Create an Upstash Redis database, then copy both values from its database details page. Local development uses an in-memory fallback when these variables are absent. Production intentionally refuses to use the in-memory fallback because it is not shared across server instances.
+Create an Upstash Redis database, then copy both values from its database details page. Local development always uses the in-memory limiter to avoid remote network latency. Production requires Upstash because an in-memory limiter is not shared across server instances.
 
 Optional but needed for real auth emails:
 

@@ -50,6 +50,7 @@ Legend:
   - `ACCOUNT_LOCKED`
   - `ACCOUNT_UNLOCKED`
 - [x] Scope normal login rate limiting by account/email instead of blocking every login from the same IP.
+- [x] Scope password reset rate limiting by account/email, with a separate broader network abuse limit.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [x] Upstash-backed production rate limiting is implemented with a local-development fallback and verified across a server restart.
 - [ ] Upgrade Next.js from 16.2.1 to a patched release; npm audit currently recommends 16.2.10.

@@ -17,6 +17,17 @@ describe("rate limiting", () => {
     assert.equal(resolveRateLimitBackend({ nodeEnv: "test" }), "memory");
   });
 
+  it("uses memory locally even when production Redis credentials are present", () => {
+    assert.equal(
+      resolveRateLimitBackend({
+        nodeEnv: "development",
+        redisUrl: "https://example.upstash.io",
+        redisToken: "token",
+      }),
+      "memory",
+    );
+  });
+
   it("uses Redis when both credentials are configured", () => {
     assert.equal(
       resolveRateLimitBackend({

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import bcrypt from "bcryptjs";
 import {
   getUnmetPasswordRequirements,
   meetsPasswordPolicy,
   PASSWORD_MAX_LENGTH,
 } from "../lib/passwordPolicy";
 import { guestRegisterSchema, resetPasswordSchema } from "../lib/validators";
+import { isCurrentPassword } from "../lib/passwordSecurity";
 
 describe("password policy", () => {
   it("accepts a password that meets every requirement", () => {
@@ -47,5 +49,18 @@ describe("password policy", () => {
     const password = `HotelGuest!2026${"a".repeat(PASSWORD_MAX_LENGTH)}`;
 
     assert.equal(meetsPasswordPolicy(password), false);
+  });
+
+  it("detects reuse of the current password", async () => {
+    const passwordHash = await bcrypt.hash("HotelGuest!2026", 4);
+
+    assert.equal(
+      await isCurrentPassword("HotelGuest!2026", passwordHash),
+      true,
+    );
+    assert.equal(
+      await isCurrentPassword("DifferentGuest!2026", passwordHash),
+      false,
+    );
   });
 });

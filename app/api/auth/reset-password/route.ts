@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
 import { hashPasswordResetToken } from "@/lib/passwordReset";
+import { isCurrentPassword } from "@/lib/passwordSecurity";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { resetPasswordSchema } from "@/lib/validators";
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
           id: true,
           status: true,
           deletedAt: true,
+          passwordHash: true,
         },
       },
     },
@@ -87,6 +89,17 @@ export async function POST(request: Request) {
       {
         error:
           "This password reset link is invalid or expired. Request a new reset link.",
+      },
+      { status: 400, headers: rateLimitHeaders(limiter) },
+    );
+  }
+
+  if (
+    await isCurrentPassword(parsed.data.password, resetToken.user.passwordHash)
+  ) {
+    return NextResponse.json(
+      {
+        error: "Choose a new password that is different from your current password.",
       },
       { status: 400, headers: rateLimitHeaders(limiter) },
     );

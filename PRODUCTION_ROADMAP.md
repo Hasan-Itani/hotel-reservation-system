@@ -58,6 +58,7 @@ Legend:
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
 - [x] Add grouped audit activity filters for authentication/security, reservations/stays, rooms/inventory, payments, staff/access, and guest inquiries.
 - [x] Add stronger password policy UI with shared registration/reset requirements and API enforcement.
+- [x] Prevent reusing the current password during password reset.
 
 ## Phase 3: Real Notifications
 
@@ -182,6 +183,7 @@ Legend:
 - Request password reset.
 - Confirm registration and password reset reject passwords missing any displayed requirement.
 - Confirm the live checklist marks every requirement and password match correctly.
+- Try resetting to the current password and confirm the request is rejected while the reset link remains usable.
 - Reset password with a valid 12+ character password containing uppercase, lowercase, number, and symbol.
 - Login with the new password.
 - Try 5 wrong passwords for one account and confirm only that account is locked.

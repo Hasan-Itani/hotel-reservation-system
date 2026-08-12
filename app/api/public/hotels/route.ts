@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { proxyNestGet } from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const proxiedResponse = await proxyNestGet(request, "/public/hotels");
+
+  if (proxiedResponse) {
+    return proxiedResponse;
+  }
+
   const hotels = await prisma.hotel.findMany({
     where: {
       deletedAt: null,

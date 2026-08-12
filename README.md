@@ -159,6 +159,14 @@ API_CORS_ORIGINS="http://localhost:3000"
 
 The NestJS workspace reads the same root `.env` file. `API_PORT` defaults to `4000` and `API_CORS_ORIGINS` defaults to the local Next.js origin.
 
+Optional for the temporary Next.js-to-NestJS catalog proxy:
+
+```env
+NEST_API_BASE_URL="http://localhost:4000/api/v1"
+```
+
+Set `NEST_API_BASE_URL` in the Next.js runtime environment to the NestJS API's private or public base URL, including `/api/v1`. Do not expose it as a `NEXT_PUBLIC_` variable. Until it is configured, the catalog GET routes keep their existing Next.js implementation as a safe transition fallback.
+
 Email note:
 
 - `onboarding@resend.dev` is only useful for limited Resend testing.

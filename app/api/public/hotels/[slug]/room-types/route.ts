@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getClientIp } from "@/lib/getClientIp";
 import { SELLABLE_ROOM_STATUSES } from "@/lib/hotelInventory";
+import { proxyNestGet } from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { roundMoney } from "@/lib/reservationPayments";
@@ -12,6 +13,15 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
+  const proxiedResponse = await proxyNestGet(
+    request,
+    `/public/hotels/${encodeURIComponent(slug)}/room-types`,
+  );
+
+  if (proxiedResponse) {
+    return proxiedResponse;
+  }
+
   const ip = getClientIp(request);
 
   const limiter = await rateLimit({

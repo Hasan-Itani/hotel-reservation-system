@@ -192,13 +192,15 @@ Legend:
   - Reservations and payments
   - Guests and staff
   - Inquiries and audit logs
-- [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration.
+- [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration:
+  - [x] Public hotel catalog GET routes proxy to NestJS when `NEST_API_BASE_URL` is configured, with a Next.js fallback until deployment configuration is available.
+  - [ ] Remaining migrated domains
 - [ ] Remove migrated Next.js route handlers only after API contract and production verification.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
 
 ## Next Recommended Work
 
-1. Configure the NestJS production API base URL and temporary Next.js proxies for the migrated public catalog endpoints, then compare their live HTTP response contracts.
+1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
 2. Migrate public availability and booking lookup reads to NestJS.
 3. Add screenshots to the README.
 

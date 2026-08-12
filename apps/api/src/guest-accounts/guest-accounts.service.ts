@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import bcrypt from "bcryptjs";
 import { PrismaService } from "../database/prisma.service";
@@ -21,6 +21,8 @@ type RegisterGuestInput = {
 
 @Injectable()
 export class GuestAccountsService {
+  private readonly logger = new Logger(GuestAccountsService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ConfigService) private readonly config: ConfigService,
@@ -139,8 +141,9 @@ export class GuestAccountsService {
         await this.invalidateVerificationTokens(input.userId);
         return false;
       }
-    } catch {
+    } catch (error) {
       await this.invalidateVerificationTokens(input.userId);
+      this.logger.error("Email verification delivery failed", error);
       return false;
     }
 
@@ -192,7 +195,14 @@ export class GuestAccountsService {
       }),
     });
 
-    return response.ok;
+    if (!response.ok) {
+      const responseText = await response.text().catch(() => "");
+      throw new Error(
+        `Email provider rejected message with status ${response.status}: ${responseText}`,
+      );
+    }
+
+    return true;
   }
 
   private async invalidateVerificationTokens(userId: string) {

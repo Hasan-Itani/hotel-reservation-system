@@ -53,7 +53,7 @@ Legend:
 - [x] Scope password reset rate limiting by account/email, with a separate broader network abuse limit.
 - [~] Email provider is integrated, but testing is limited by Resend domain rules.
 - [x] Upstash-backed production rate limiting is implemented with a local-development fallback and verified across a server restart.
-- [x] Upgrade Next.js and eslint-config-next from 16.2.1 to patched release 16.2.10.
+- [x] Upgrade Next.js and eslint-config-next to patched release 16.3.0.
 - [x] Add session versioning and invalidate existing sessions after password reset.
 - [x] Add safer guest account unlock workflow for hotel admins, including clear lock expiration details and responsive action controls.
 - [x] Add grouped audit activity filters for authentication/security, reservations/stays, rooms/inventory, payments, staff/access, and guest inquiries.
@@ -154,7 +154,7 @@ Legend:
 - [ ] Add structured logging.
 - [ ] Add error tracking.
 - [ ] Add database backup and restore plan.
-- [x] Resolve current npm dependency audit findings without force downgrades; production and full audits report zero vulnerabilities.
+- [x] Resolve current npm dependency audit findings without force downgrades; Next.js 16.3.0, Prisma 7.9.1, and production/full audits report zero vulnerabilities.
 - [~] Run broader application security review before real launch; dependency audit is complete.
 
 ## Phase 9: Portfolio And Hiring Readiness
@@ -169,10 +169,36 @@ Legend:
 - [ ] Add live demo link after deployment.
 - [ ] Update CV project section with this project.
 
+## Phase 10: NestJS Backend Migration
+
+- [x] Add npm workspace support while keeping the existing Next.js app at the repository root during migration.
+- [x] Scaffold a NestJS + Fastify API foundation with configuration validation, Prisma access, CORS, global validation, consistent errors, Swagger, and health endpoints.
+- [ ] Migrate public hotel catalog reads:
+  - Hotels list
+  - Hotel detail
+  - Room types
+- [ ] Migrate public availability and booking lookup reads.
+- [ ] Migrate guest account flows:
+  - Registration
+  - Profile
+  - Guest bookings
+  - Email verification
+  - Password reset
+- [ ] Migrate authentication and session handling without breaking existing Next.js sessions during the transition.
+- [ ] Migrate transactional booking, pricing, inventory locking, and payment flows.
+- [ ] Migrate admin API domains:
+  - Rooms and room types
+  - Reservations and payments
+  - Guests and staff
+  - Inquiries and audit logs
+- [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration.
+- [ ] Remove migrated Next.js route handlers only after API contract and production verification.
+- [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
+
 ## Next Recommended Work
 
-1. Add screenshots to the README.
-2. Continue toward CMS and admin dashboard stats.
+1. Migrate public hotel catalog reads to NestJS and compare their response contracts with the current Next.js API.
+2. Add screenshots to the README.
 3. Continue broader application security review before launch.
 
 ## Testing Checklist After Auth Changes

@@ -20,6 +20,7 @@ Current state:
 ## Tech Stack
 
 - Next.js App Router
+- NestJS with Fastify for the incremental API migration
 - React
 - TypeScript
 - PostgreSQL
@@ -149,6 +150,15 @@ EMAIL_FROM="Hotel System <onboarding@resend.dev>"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
+Optional for the NestJS API:
+
+```env
+API_PORT=4000
+API_CORS_ORIGINS="http://localhost:3000"
+```
+
+The NestJS workspace reads the same root `.env` file. `API_PORT` defaults to `4000` and `API_CORS_ORIGINS` defaults to the local Next.js origin.
+
 Email note:
 
 - `onboarding@resend.dev` is only useful for limited Resend testing.
@@ -187,17 +197,33 @@ Run the development server:
 npm run dev
 ```
 
+Run the NestJS API in a separate terminal:
+
+```bash
+npm run dev:api
+```
+
 Open:
 
 ```txt
 http://localhost:3000
 ```
 
+NestJS API health check and Swagger UI:
+
+```txt
+http://localhost:4000/api/v1/health
+http://localhost:4000/docs
+```
+
 ## Scripts
 
 ```bash
 npm run dev
+npm run dev:api
 npm run build
+npm run build:web
+npm run build:api
 npm run start
 npm run lint
 npm test

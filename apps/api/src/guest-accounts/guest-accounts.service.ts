@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import bcrypt from "bcryptjs";
 import { PrismaService } from "../database/prisma.service";
 
@@ -25,7 +24,6 @@ export class GuestAccountsService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
   async register(input: RegisterGuestInput, origin: string) {
@@ -162,10 +160,13 @@ export class GuestAccountsService {
   }
 
   private async sendEmail(input: { to: string; verificationUrl: string }) {
-    const apiKey = this.config.get<string>("RESEND_API_KEY");
-    const from = this.config.get<string>("EMAIL_FROM");
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    const from = process.env.EMAIL_FROM?.trim();
 
     if (!apiKey || !from) {
+      this.logger.warn(
+        `Email verification is not configured (RESEND_API_KEY=${Boolean(apiKey)}, EMAIL_FROM=${Boolean(from)})`,
+      );
       return false;
     }
 

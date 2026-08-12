@@ -173,10 +173,11 @@ Legend:
 
 - [x] Add npm workspace support while keeping the existing Next.js app at the repository root during migration.
 - [x] Scaffold a NestJS + Fastify API foundation with configuration validation, Prisma access, CORS, global validation, consistent errors, Swagger, and health endpoints.
-- [ ] Migrate public hotel catalog reads:
+- [x] Migrate public hotel catalog reads to NestJS under `/api/v1/public/hotels`:
   - Hotels list
   - Hotel detail
   - Room types
+  - Existing Next.js route handlers remain active until the temporary proxy and deployment configuration task.
 - [ ] Migrate public availability and booking lookup reads.
 - [ ] Migrate guest account flows:
   - Registration

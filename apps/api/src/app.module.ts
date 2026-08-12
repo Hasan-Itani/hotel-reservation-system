@@ -4,6 +4,8 @@ import { ConfigModule } from "@nestjs/config";
 import { validateEnvironment } from "./common/config/environment";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
+import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
+import { PublicHotelsModule } from "./public-hotels/public-hotels.module";
 
 @Module({
   imports: [
@@ -16,7 +18,9 @@ import { HealthModule } from "./health/health.module";
       validate: validateEnvironment,
     }),
     DatabaseModule,
+    RateLimitModule,
     HealthModule,
+    PublicHotelsModule,
   ],
 })
 export class AppModule {}

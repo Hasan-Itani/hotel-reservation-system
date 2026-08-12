@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 
 const FORWARDED_REQUEST_HEADERS = [
   "content-type",
+  "x-forwarded-host",
+  "x-forwarded-proto",
   "x-forwarded-for",
   "x-real-ip",
   "cf-connecting-ip",
@@ -43,6 +45,19 @@ function buildRequestHeaders(request: Request) {
     if (value) {
       headers.set(headerName, value);
     }
+  }
+
+  if (!headers.has("x-forwarded-host")) {
+    const host = request.headers.get("host");
+
+    if (host) {
+      headers.set("x-forwarded-host", host);
+    }
+  }
+
+  if (!headers.has("x-forwarded-proto")) {
+    const protocol = new URL(request.url).protocol.replace(":", "");
+    headers.set("x-forwarded-proto", protocol);
   }
 
   return headers;

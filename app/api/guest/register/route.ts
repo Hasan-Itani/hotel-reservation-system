@@ -8,6 +8,10 @@ import {
 import { sendEmailVerificationEmail } from "@/lib/email";
 import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
+import {
+  isNestApiProxyConfigured,
+  proxyNestRequest,
+} from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { guestRegisterSchema } from "@/lib/validators";
@@ -74,6 +78,52 @@ async function sendVerificationEmail(input: {
 }
 
 export async function POST(request: Request) {
+  if (isNestApiProxyConfigured()) {
+    const bodyIsValidJson = await request
+      .clone()
+      .json()
+      .then(() => true)
+      .catch(() => false);
+
+    if (!bodyIsValidJson) {
+      const ip = getClientIp(request);
+      const limiter = await rateLimit({
+        key: `guest-register:${ip}`,
+        windowMs: 15 * 60 * 1000,
+        maxRequests: 10,
+      });
+
+      if (!limiter.ok) {
+        return NextResponse.json(
+          {
+            error: "Too many registration attempts. Please try again later.",
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(limiter.retryAfterSeconds),
+              ...rateLimitHeaders(limiter),
+            },
+          },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        {
+          status: 400,
+          headers: rateLimitHeaders(limiter),
+        },
+      );
+    }
+  }
+
+  const proxiedResponse = await proxyNestRequest(request, "/guest/register");
+
+  if (proxiedResponse) {
+    return proxiedResponse;
+  }
+
   const ip = getClientIp(request);
 
   const limiter = await rateLimit({

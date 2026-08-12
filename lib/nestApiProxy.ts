@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 const FORWARDED_REQUEST_HEADERS = [
+  "content-type",
   "x-forwarded-for",
   "x-real-ip",
   "cf-connecting-ip",
@@ -22,6 +23,10 @@ function getNestApiBaseUrl() {
   const baseUrl = process.env.NEST_API_BASE_URL?.trim();
 
   return baseUrl ? baseUrl.replace(/\/$/, "") : null;
+}
+
+export function isNestApiProxyConfigured() {
+  return getNestApiBaseUrl() !== null;
 }
 
 function buildRequestHeaders(request: Request) {
@@ -57,7 +62,7 @@ function buildResponseHeaders(response: Response) {
   return headers;
 }
 
-export async function proxyNestGet(
+export async function proxyNestRequest(
   request: Request,
   path: string,
 ): Promise<NextResponse | null> {
@@ -68,10 +73,16 @@ export async function proxyNestGet(
   }
 
   try {
-    const response = await fetch(`${baseUrl}${path}`, {
-      method: "GET",
+    const method = request.method.toUpperCase();
+    const response = await fetch(`${baseUrl}${path}${new URL(request.url).search}`, {
+      method,
       cache: "no-store",
       headers: buildRequestHeaders(request),
+      ...(method === "GET" || method === "HEAD"
+        ? {}
+        : {
+            body: await request.text(),
+          }),
     });
 
     return new NextResponse(response.body, {
@@ -84,4 +95,8 @@ export async function proxyNestGet(
       { status: 502 },
     );
   }
+}
+
+export function proxyNestGet(request: Request, path: string) {
+  return proxyNestRequest(request, path);
 }

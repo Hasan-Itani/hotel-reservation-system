@@ -1,11 +1,17 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { RoomStatus } from "@prisma/client";
+import { ReservationStatus, RoomStatus } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
 
 const SELLABLE_ROOM_STATUSES = [
   RoomStatus.AVAILABLE,
   RoomStatus.OCCUPIED,
   RoomStatus.CLEANING,
+];
+
+const BLOCKING_RESERVATION_STATUSES = [
+  ReservationStatus.PENDING,
+  ReservationStatus.CONFIRMED,
+  ReservationStatus.CHECKED_IN,
 ];
 
 function roundMoney(value: number) {
@@ -219,6 +225,133 @@ export class PublicHotelsService {
         images: roomType.images,
         amenities: roomType.amenities.map((item) => item.amenity),
       })),
+    };
+  }
+
+  async findAvailability(input: {
+    slug: string;
+    checkInDate: string;
+    checkOutDate: string;
+    adults?: number;
+    children?: number;
+  }) {
+    const hotel = await this.prisma.hotel.findFirst({
+      where: {
+        slug: input.slug,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        currency: true,
+      },
+    });
+
+    if (!hotel) {
+      return null;
+    }
+
+    const checkIn = new Date(`${input.checkInDate}T00:00:00.000Z`);
+    const checkOut = new Date(`${input.checkOutDate}T00:00:00.000Z`);
+    const roomTypes = await this.prisma.roomType.findMany({
+      where: {
+        hotelId: hotel.id,
+        deletedAt: null,
+        ...(input.adults === undefined
+          ? {}
+          : { capacityAdults: { gte: input.adults } }),
+        ...(input.children === undefined
+          ? {}
+          : { capacityChildren: { gte: input.children } }),
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        basePrice: true,
+        capacityAdults: true,
+        capacityChildren: true,
+        bedType: true,
+        roomSizeSqm: true,
+        images: {
+          select: {
+            id: true,
+            url: true,
+            altText: true,
+            sortOrder: true,
+            isPrimary: true,
+          },
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+        _count: {
+          select: {
+            rooms: {
+              where: {
+                deletedAt: null,
+                status: {
+                  in: SELLABLE_ROOM_STATUSES,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+    const reservedRoomCounts = await this.prisma.reservationRoom.groupBy({
+      by: ["roomTypeId"],
+      where: {
+        reservation: {
+          hotelId: hotel.id,
+          status: {
+            in: BLOCKING_RESERVATION_STATUSES,
+          },
+          checkInDate: {
+            lt: checkOut,
+          },
+          checkOutDate: {
+            gt: checkIn,
+          },
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+    const reservedCountByRoomType = new Map(
+      reservedRoomCounts.map((item) => [item.roomTypeId, item._count._all]),
+    );
+
+    return {
+      hotel,
+      roomTypes: roomTypes.map((roomType) => {
+        const totalRooms = roomType._count.rooms;
+        const reservedRooms = reservedCountByRoomType.get(roomType.id) ?? 0;
+        const availableRooms = Math.max(totalRooms - reservedRooms, 0);
+
+        return {
+          id: roomType.id,
+          name: roomType.name,
+          slug: roomType.slug,
+          description: roomType.description,
+          basePrice: roomType.basePrice,
+          capacityAdults: roomType.capacityAdults,
+          capacityChildren: roomType.capacityChildren,
+          bedType: roomType.bedType,
+          roomSizeSqm: roomType.roomSizeSqm,
+          images: roomType.images,
+          totalRooms,
+          reservedRooms,
+          availableRooms,
+          isAvailable: availableRooms > 0,
+        };
+      }),
     };
   }
 }

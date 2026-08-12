@@ -198,9 +198,9 @@ Legend:
 
 ## Next Recommended Work
 
-1. Migrate public hotel catalog reads to NestJS and compare their response contracts with the current Next.js API.
-2. Add screenshots to the README.
-3. Continue broader application security review before launch.
+1. Configure the NestJS production API base URL and temporary Next.js proxies for the migrated public catalog endpoints, then compare their live HTTP response contracts.
+2. Migrate public availability and booking lookup reads to NestJS.
+3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes
 

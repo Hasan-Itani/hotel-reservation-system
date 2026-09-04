@@ -4,6 +4,8 @@ const environmentSchema = z.object({
   DATABASE_URL: z.string().url(),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   API_CORS_ORIGINS: z.string().optional(),
+  RESEND_API_KEY: z.string().trim().min(1).optional(),
+  EMAIL_FROM: z.string().trim().min(1).optional(),
 });
 
 export type ApiEnvironment = z.infer<typeof environmentSchema>;

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import type { GuestRegisterResponse } from "@/lib/frontend/types";
 import {
@@ -34,8 +35,8 @@ type GuestRegisterFormProps = {
 };
 
 export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
+  const router = useRouter();
   const [form, setForm] = useState<RegisterFormState>(defaultForm);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,7 +54,6 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
     event.preventDefault();
 
     setError("");
-    setMessage("");
 
     const unmetRequirement = getUnmetPasswordRequirements(form.password)[0];
 
@@ -75,7 +75,7 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
     setIsSubmitting(true);
 
     try {
-      const data = await clientFetchJson<GuestRegisterResponse>("/api/guest/register", {
+      await clientFetchJson<GuestRegisterResponse>("/api/guest/register", {
         method: "POST",
         body: JSON.stringify({
           firstName: form.firstName,
@@ -86,15 +86,13 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
         }),
       });
 
-      setMessage(data.message);
-      setForm(defaultForm);
+      router.replace(`/guest/check-email?next=${encodeURIComponent(next)}`);
     } catch (caughtError) {
       if (caughtError instanceof FrontendApiError) {
         setError(caughtError.message);
       } else {
         setError("Unable to create account right now");
       }
-    } finally {
       setIsSubmitting(false);
     }
   }
@@ -105,14 +103,8 @@ export function GuestRegisterForm({ next }: GuestRegisterFormProps) {
   return (
     <form className="grid gap-5" onSubmit={handleSubmit}>
       {error ? (
-        <div className="rounded-3xl border border-danger-soft bg-danger-soft px-5 py-4 text-sm font-bold text-danger">
+        <div role="alert" className="rounded-3xl border border-danger-soft bg-danger-soft px-5 py-4 text-sm font-bold text-danger">
           {error}
-        </div>
-      ) : null}
-
-      {message ? (
-        <div className="rounded-3xl border border-luxury-stone bg-luxury-cream px-5 py-4 text-sm font-bold text-luxury-ink">
-          <p>{message}</p>
         </div>
       ) : null}
 

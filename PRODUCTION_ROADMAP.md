@@ -211,7 +211,7 @@ Legend:
 
 ## Testing Checklist After Auth Changes
 
-- Register with the allowed Resend test email.
+- Register with an email you can access and confirm the app opens the check-email page.
 - Verify email.
 - Login after verification.
 - Request password reset.

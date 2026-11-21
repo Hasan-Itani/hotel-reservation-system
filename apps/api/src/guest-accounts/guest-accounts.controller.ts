@@ -62,6 +62,10 @@ const guestRegisterSchema = z
   })
   .strict();
 
+const verifyEmailSchema = z
+  .object({ token: z.string().trim().min(32).max(300) })
+  .strict();
+
 @Controller("guest")
 export class GuestAccountsController {
   constructor(
@@ -128,6 +132,42 @@ export class GuestAccountsController {
             "Account created. Check your email and verify your address before signing in.",
         });
     }
+  }
+
+  @Post("verify-email")
+  async verifyEmail(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    const limiter = await this.rateLimit.check({
+      key: `verify-email:${getClientIp(request)}`,
+      windowMs: 15 * 60 * 1000,
+      maxRequests: 20,
+    });
+    this.setRateLimitHeaders(reply, limiter);
+
+    if (!limiter.ok) {
+      reply.header("Retry-After", String(limiter.retryAfterSeconds));
+      return reply.status(429).send({
+        error: "Too many verification attempts. Please try again later.",
+      });
+    }
+
+    const parsed = verifyEmailSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return reply.status(400).send({ error: "Invalid verification link" });
+    }
+
+    if (!(await this.guestAccounts.verifyEmail(parsed.data.token))) {
+      return reply.status(400).send({
+        error:
+          "This email verification link is invalid or expired. Request a new verification email.",
+      });
+    }
+
+    return reply.status(200).send({ message: "Email verified. You can now sign in." });
   }
 
   private setRateLimitHeaders(reply: FastifyReply, limiter: RateLimitResult) {

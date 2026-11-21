@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
 import { hashEmailVerificationToken } from "@/lib/emailVerification";
+import { isNestApiProxyConfigured, proxyNestRequest } from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { verifyEmailSchema } from "@/lib/validators";
@@ -9,6 +10,26 @@ import { verifyEmailSchema } from "@/lib/validators";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (isNestApiProxyConfigured()) {
+    const validJson = await request.clone().json().then(
+      () => true,
+      () => false,
+    );
+
+    if (validJson) {
+      const headers = new Headers(request.headers);
+      headers.set("content-type", "application/json");
+      const response = await proxyNestRequest(
+        new Request(request.clone(), { headers }),
+        "/guest/verify-email",
+      );
+
+      if (response) {
+        return response;
+      }
+    }
+  }
+
   const ip = getClientIp(request);
 
   const limiter = await rateLimit({

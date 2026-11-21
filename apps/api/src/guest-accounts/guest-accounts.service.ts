@@ -6,6 +6,12 @@ import { PrismaService } from "../database/prisma.service";
 
 const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
+class UnavailableVerificationTokenError extends Error {}
+
+function hashVerificationToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export const VERIFICATION_ALREADY_SENT_RESPONSE =
   "A verification email was already sent. Check your inbox before requesting another one.";
 export const VERIFICATION_SEND_FAILED_RESPONSE =
@@ -115,13 +121,96 @@ export class GuestAccountsService {
     return { type: sent ? ("created" as const) : ("send-failed" as const) };
   }
 
+  async verifyEmail(token: string): Promise<boolean> {
+    const tokenHash = hashVerificationToken(token);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const verificationToken = await tx.emailVerificationToken.findUnique({
+          where: { tokenHash },
+          select: {
+            id: true,
+            expiresAt: true,
+            usedAt: true,
+            user: {
+              select: {
+                id: true,
+                emailVerifiedAt: true,
+                deletedAt: true,
+                status: true,
+              },
+            },
+          },
+        });
+        const now = new Date();
+
+        if (
+          !verificationToken ||
+          verificationToken.usedAt ||
+          verificationToken.expiresAt <= now ||
+          verificationToken.user.deletedAt ||
+          verificationToken.user.status !== "ACTIVE"
+        ) {
+          return false;
+        }
+
+        const user = verificationToken.user;
+        const updatedUser = await tx.user.updateMany({
+          where: { id: user.id, deletedAt: null, status: "ACTIVE" },
+          data: { emailVerifiedAt: user.emailVerifiedAt ?? now },
+        });
+
+        if (updatedUser.count === 0) {
+          return false;
+        }
+
+        const consumedAt = new Date();
+        const consumedToken = await tx.emailVerificationToken.updateMany({
+          where: {
+            id: verificationToken.id,
+            usedAt: null,
+            expiresAt: { gt: consumedAt },
+          },
+          data: { usedAt: consumedAt },
+        });
+
+        if (consumedToken.count === 0) {
+          throw new UnavailableVerificationTokenError();
+        }
+
+        await tx.emailVerificationToken.updateMany({
+          where: { userId: user.id, usedAt: null },
+          data: { usedAt: consumedAt },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            actorUserId: user.id,
+            action: "EMAIL_VERIFIED",
+            entityType: "User",
+            entityId: user.id,
+            summary: "Email address was verified",
+          },
+        });
+
+        return true;
+      });
+    } catch (error) {
+      if (error instanceof UnavailableVerificationTokenError) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
   private async sendVerificationEmail(input: {
     email: string;
     origin: string;
     userId: string;
   }) {
     const token = randomBytes(32).toString("base64url");
-    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const tokenHash = hashVerificationToken(token);
 
     await this.prisma.emailVerificationToken.create({
       data: {

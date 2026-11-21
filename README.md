@@ -150,6 +150,8 @@ EMAIL_FROM="Hotel System <onboarding@resend.dev>"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
+Set `NEXT_PUBLIC_APP_URL` to the public Next.js origin in the production NestJS environment so password reset emails link to the website. NestJS defaults to `http://localhost:3000` in local development.
+
 Optional for the NestJS API:
 
 ```env

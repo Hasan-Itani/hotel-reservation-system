@@ -6,6 +6,7 @@ const environmentSchema = z.object({
   API_CORS_ORIGINS: z.string().optional(),
   RESEND_API_KEY: z.string().trim().min(1).optional(),
   EMAIL_FROM: z.string().trim().min(1).optional(),
+  NEXT_PUBLIC_APP_URL: z.string().trim().optional(),
 });
 
 export type ApiEnvironment = z.infer<typeof environmentSchema>;

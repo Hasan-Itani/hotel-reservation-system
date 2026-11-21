@@ -38,10 +38,10 @@ function getRequestOrigin(request: FastifyRequest) {
   return `${protocol}://${host}`;
 }
 
-const passwordSchema = z
+const passwordSchema = (maxLength: number) => z
   .string()
   .min(12, "Password must be at least 12 characters")
-  .max(128, "Password must not exceed 128 characters")
+  .max(maxLength, `Password must not exceed ${maxLength} characters`)
   .regex(/[a-z]/, "Password must include a lowercase letter")
   .regex(/[A-Z]/, "Password must include an uppercase letter")
   .regex(/\d/, "Password must include a number")
@@ -58,13 +58,27 @@ const guestRegisterSchema = z
       .max(30)
       .optional()
       .transform((value) => (value === undefined || value.length === 0 ? null : value)),
-    password: passwordSchema,
+    password: passwordSchema(128),
   })
   .strict();
 
 const verifyEmailSchema = z
   .object({ token: z.string().trim().min(32).max(300) })
   .strict();
+
+const forgotPasswordSchema = z
+  .object({ email: z.string().trim().toLowerCase().email() })
+  .strict();
+
+const resetPasswordSchema = verifyEmailSchema.extend({
+  password: passwordSchema(100),
+});
+
+const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
+const TOO_MANY_PASSWORD_RESETS =
+  "Too many password reset attempts. Please try again later.";
+const TOO_MANY_NETWORK_PASSWORD_RESETS =
+  "Too many password reset attempts from this network. Please try again later.";
 
 @Controller("guest")
 export class GuestAccountsController {
@@ -168,6 +182,111 @@ export class GuestAccountsController {
     }
 
     return reply.status(200).send({ message: "Email verified. You can now sign in." });
+  }
+
+  @Post("forgot-password")
+  async forgotPassword(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    const parsed = forgotPasswordSchema.safeParse(body);
+    const networkLimit = this.rateLimit.check({
+      key: `forgot-password-ip:${getClientIp(request)}`,
+      windowMs: PASSWORD_RESET_WINDOW_MS,
+      maxRequests: 25,
+    });
+
+    if (!parsed.success) {
+      const limiter = await networkLimit;
+      if (!limiter.ok) {
+        return this.rejectPasswordResetLimit(reply, limiter, TOO_MANY_NETWORK_PASSWORD_RESETS);
+      }
+
+      this.setRateLimitHeaders(reply, limiter);
+      return reply.status(400).send({
+        error: "Enter a valid email address",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { email } = parsed.data;
+    const [accountLimiter, networkLimiter] = await Promise.all([
+      this.rateLimit.check({
+        key: `forgot-password-account:${email}`,
+        windowMs: PASSWORD_RESET_WINDOW_MS,
+        maxRequests: 5,
+      }),
+      networkLimit,
+    ]);
+
+    if (!accountLimiter.ok) {
+      return this.rejectPasswordResetLimit(reply, accountLimiter, TOO_MANY_PASSWORD_RESETS);
+    }
+    if (!networkLimiter.ok) {
+      return this.rejectPasswordResetLimit(reply, networkLimiter, TOO_MANY_NETWORK_PASSWORD_RESETS);
+    }
+
+    this.setRateLimitHeaders(reply, accountLimiter);
+    const result = await this.guestAccounts.requestPasswordReset(email);
+    if (result === "send-failed") {
+      return reply.status(503).send({
+        error: "We could not send the password reset email right now. Please try again later.",
+      });
+    }
+
+    return reply.status(200).send({
+      message: result === "already-sent"
+        ? "A password reset email was already sent recently. Check your inbox before requesting another one."
+        : "If an active account exists for that email, password reset instructions have been sent.",
+    });
+  }
+
+  @Post("reset-password")
+  async resetPassword(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    const limiter = await this.rateLimit.check({
+      key: `reset-password:${getClientIp(request)}`,
+      windowMs: PASSWORD_RESET_WINDOW_MS,
+      maxRequests: 10,
+    });
+    if (!limiter.ok) {
+      return this.rejectPasswordResetLimit(reply, limiter, TOO_MANY_PASSWORD_RESETS);
+    }
+
+    this.setRateLimitHeaders(reply, limiter);
+    const parsed = resetPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid password reset request",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const result = await this.guestAccounts.resetPassword(parsed.data.token, parsed.data.password);
+    if (result === "invalid") {
+      return reply.status(400).send({
+        error: "This password reset link is invalid or expired. Request a new reset link.",
+      });
+    }
+    if (result === "reused-password") {
+      return reply.status(400).send({
+        error: "Choose a new password that is different from your current password.",
+      });
+    }
+
+    return reply.status(200).send({
+      message: "Password updated successfully. You can now sign in.",
+    });
+  }
+
+  private rejectPasswordResetLimit(reply: FastifyReply, limiter: RateLimitResult, error: string) {
+    this.setRateLimitHeaders(reply, limiter);
+    reply.header("Retry-After", String(limiter.retryAfterSeconds));
+    return reply.status(429).send({ error });
   }
 
   private setRateLimitHeaders(reply: FastifyReply, limiter: RateLimitResult) {

@@ -5,10 +5,12 @@ import bcrypt from "bcryptjs";
 import { PrismaService } from "../database/prisma.service";
 
 const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 class UnavailableVerificationTokenError extends Error {}
+class UnavailablePasswordResetTokenError extends Error {}
 
-function hashVerificationToken(token: string) {
+function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
@@ -122,7 +124,7 @@ export class GuestAccountsService {
   }
 
   async verifyEmail(token: string): Promise<boolean> {
-    const tokenHash = hashVerificationToken(token);
+    const tokenHash = hashToken(token);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -204,13 +206,173 @@ export class GuestAccountsService {
     }
   }
 
+  async requestPasswordReset(email: string) {
+    const token = randomBytes(32).toString("base64url");
+    const tokenHash = hashToken(token);
+    const request = await this.prisma.$transaction(async (tx) => {
+      const [user] = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "User"
+        WHERE "email" = ${email} AND "deletedAt" IS NULL AND "status" = 'ACTIVE'
+        FOR UPDATE
+      `;
+
+      if (!user) {
+        return { type: "accepted" as const };
+      }
+
+      const now = new Date();
+      const existingToken = await tx.passwordResetToken.findFirst({
+        where: { userId: user.id, usedAt: null, expiresAt: { gt: now } },
+        select: { id: true },
+      });
+
+      if (existingToken) {
+        return { type: "already-sent" as const };
+      }
+
+      await tx.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: now },
+      });
+      await tx.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt: new Date(now.getTime() + PASSWORD_RESET_TOKEN_TTL_MS),
+        },
+      });
+
+      return { type: "created" as const, userId: user.id };
+    });
+
+    if (request.type !== "created") {
+      return request.type;
+    }
+
+    try {
+      const appUrl = this.config.get<string>("NEXT_PUBLIC_APP_URL") ||
+        (this.config.get<string>("NODE_ENV") === "production" ? "" : "http://localhost:3000");
+      const resetUrl = new URL("/guest/reset-password", appUrl);
+      if (resetUrl.protocol !== "https:" && resetUrl.protocol !== "http:") {
+        throw new Error("NEXT_PUBLIC_APP_URL must use HTTP or HTTPS");
+      }
+      resetUrl.searchParams.set("token", token);
+
+      const expiryNotice =
+        "This link expires in 60 minutes. If you did not request this, you can ignore this email.";
+      const sent = await this.sendEmail({
+        to: email,
+        subject: "Reset your Hotel System password",
+        text: `We received a request to reset your Hotel System password.\n\nOpen this secure link to choose a new password:\n${resetUrl.href}\n\n${expiryNotice}`,
+        html: `<p>We received a request to reset your Hotel System password.</p><p><a href="${resetUrl.href}">Reset your password</a></p><p>${expiryNotice}</p>`,
+      });
+
+      if (!sent) {
+        throw new Error("Password reset email is not configured");
+      }
+    } catch {
+      await this.prisma.passwordResetToken.updateMany({
+        where: { tokenHash, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      this.logger.error("Password reset email delivery failed");
+      return "send-failed";
+    }
+
+    await this.createAuditLog({
+      actorUserId: request.userId,
+      action: "PASSWORD_RESET_REQUESTED",
+      entityType: "User",
+      entityId: request.userId,
+      summary: "Password reset email was sent",
+      metadata: { email },
+    });
+    return "accepted";
+  }
+
+  async resetPassword(token: string, password: string) {
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash: hashToken(token) },
+      select: {
+        id: true,
+        expiresAt: true,
+        usedAt: true,
+        user: {
+          select: { id: true, status: true, deletedAt: true, passwordHash: true },
+        },
+      },
+    });
+
+    if (
+      !resetToken ||
+      resetToken.usedAt ||
+      resetToken.expiresAt <= new Date() ||
+      resetToken.user.deletedAt ||
+      resetToken.user.status !== "ACTIVE"
+    ) {
+      return "invalid";
+    }
+
+    const user = resetToken.user;
+    if (await bcrypt.compare(password, user.passwordHash)) {
+      return "reused-password";
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const updatedUser = await tx.user.updateMany({
+          where: { id: user.id, status: "ACTIVE", deletedAt: null, passwordHash: user.passwordHash },
+          data: {
+            passwordHash,
+            sessionVersion: { increment: 1 },
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+          },
+        });
+        if (updatedUser.count === 0) {
+          return "invalid";
+        }
+
+        const usedAt = new Date();
+        const consumedToken = await tx.passwordResetToken.updateMany({
+          where: { id: resetToken.id, usedAt: null, expiresAt: { gt: usedAt } },
+          data: { usedAt },
+        });
+        if (consumedToken.count === 0) {
+          throw new UnavailablePasswordResetTokenError();
+        }
+
+        await tx.passwordResetToken.updateMany({
+          where: { userId: user.id, usedAt: null },
+          data: { usedAt },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorUserId: user.id,
+            action: "PASSWORD_CHANGED",
+            entityType: "User",
+            entityId: user.id,
+            summary: "Password was changed using a reset link",
+          },
+        });
+        return "updated";
+      });
+    } catch (error) {
+      if (error instanceof UnavailablePasswordResetTokenError) {
+        return "invalid";
+      }
+      throw error;
+    }
+  }
+
   private async sendVerificationEmail(input: {
     email: string;
     origin: string;
     userId: string;
   }) {
     const token = randomBytes(32).toString("base64url");
-    const tokenHash = hashVerificationToken(token);
+    const tokenHash = hashToken(token);
 
     await this.prisma.emailVerificationToken.create({
       data: {
@@ -221,9 +383,23 @@ export class GuestAccountsService {
     });
 
     try {
+      const verificationUrl = `${input.origin}/guest/verify-email?token=${encodeURIComponent(token)}`;
       const sent = await this.sendEmail({
         to: input.email,
-        verificationUrl: `${input.origin}/guest/verify-email?token=${encodeURIComponent(token)}`,
+        subject: "Verify your Hotel System email",
+        text: [
+          "Welcome to Hotel System.",
+          "",
+          "Open this secure link to verify your email address:",
+          verificationUrl,
+          "",
+          "This link expires in 24 hours. If you did not create this account, you can ignore this email.",
+        ].join("\n"),
+        html: [
+          "<p>Welcome to Hotel System.</p>",
+          `<p><a href="${verificationUrl}">Verify your email address</a></p>`,
+          "<p>This link expires in 24 hours. If you did not create this account, you can ignore this email.</p>",
+        ].join(""),
       });
 
       if (!sent) {
@@ -250,13 +426,13 @@ export class GuestAccountsService {
     return true;
   }
 
-  private async sendEmail(input: { to: string; verificationUrl: string }) {
+  private async sendEmail(input: { to: string; subject: string; text: string; html: string }) {
     const apiKey = this.config.get<string>("RESEND_API_KEY")?.trim();
     const from = this.config.get<string>("EMAIL_FROM")?.trim();
 
     if (!apiKey || !from) {
       this.logger.warn(
-        `Email verification is not configured (RESEND_API_KEY=${Boolean(apiKey)}, EMAIL_FROM=${Boolean(from)})`,
+        `Email sending is not configured (RESEND_API_KEY=${Boolean(apiKey)}, EMAIL_FROM=${Boolean(from)})`,
       );
       return false;
     }
@@ -269,21 +445,7 @@ export class GuestAccountsService {
       },
       body: JSON.stringify({
         from,
-        to: input.to,
-        subject: "Verify your Hotel System email",
-        text: [
-          "Welcome to Hotel System.",
-          "",
-          "Open this secure link to verify your email address:",
-          input.verificationUrl,
-          "",
-          "This link expires in 24 hours. If you did not create this account, you can ignore this email.",
-        ].join("\n"),
-        html: [
-          "<p>Welcome to Hotel System.</p>",
-          `<p><a href="${input.verificationUrl}">Verify your email address</a></p>`,
-          "<p>This link expires in 24 hours. If you did not create this account, you can ignore this email.</p>",
-        ].join(""),
+        ...input,
       }),
     });
 

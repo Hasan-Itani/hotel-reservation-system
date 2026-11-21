@@ -115,3 +115,19 @@ export async function proxyNestRequest(
 export function proxyNestGet(request: Request, path: string) {
   return proxyNestRequest(request, path);
 }
+
+export async function proxyNestJsonPost(request: Request, path: string) {
+  if (!isNestApiProxyConfigured()) {
+    return null;
+  }
+
+  try {
+    await request.clone().json();
+  } catch {
+    return null;
+  }
+
+  const headers = new Headers(request.headers);
+  headers.set("content-type", "application/json");
+  return proxyNestRequest(new Request(request.clone(), { headers }), path);
+}

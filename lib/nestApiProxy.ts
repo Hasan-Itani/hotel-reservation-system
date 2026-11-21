@@ -19,6 +19,7 @@ const FORWARDED_RESPONSE_HEADERS = [
   "x-ratelimit-limit",
   "x-ratelimit-remaining",
   "x-ratelimit-reset",
+  "cache-control",
 ];
 
 function getNestApiBaseUrl() {
@@ -80,6 +81,7 @@ function buildResponseHeaders(response: Response) {
 export async function proxyNestRequest(
   request: Request,
   path: string,
+  options: { sessionToken?: string } = {},
 ): Promise<NextResponse | null> {
   const baseUrl = getNestApiBaseUrl();
 
@@ -89,10 +91,16 @@ export async function proxyNestRequest(
 
   try {
     const method = request.method.toUpperCase();
+    const headers = buildRequestHeaders(request);
+    if (options.sessionToken) {
+      headers.set("authorization", `Bearer ${options.sessionToken}`);
+    }
+
     const response = await fetch(`${baseUrl}${path}${new URL(request.url).search}`, {
       method,
       cache: "no-store",
-      headers: buildRequestHeaders(request),
+      headers,
+      ...(options.sessionToken ? { redirect: "error" as const } : {}),
       ...(method === "GET" || method === "HEAD"
         ? {}
         : {
@@ -106,7 +114,7 @@ export async function proxyNestRequest(
     });
   } catch {
     return NextResponse.json(
-      { error: "Hotel catalog service is unavailable" },
+      { error: options.sessionToken ? "Session service is unavailable" : "Hotel catalog service is unavailable" },
       { status: 502 },
     );
   }

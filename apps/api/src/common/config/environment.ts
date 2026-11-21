@@ -7,6 +7,7 @@ const environmentSchema = z.object({
   RESEND_API_KEY: z.string().trim().min(1).optional(),
   EMAIL_FROM: z.string().trim().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.string().trim().optional(),
+  JWT_SECRET: z.string().min(1).optional(),
 });
 
 export type ApiEnvironment = z.infer<typeof environmentSchema>;

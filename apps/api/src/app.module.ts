@@ -8,6 +8,7 @@ import { RateLimitModule } from "./common/rate-limit/rate-limit.module";
 import { PublicHotelsModule } from "./public-hotels/public-hotels.module";
 import { PublicBookingsModule } from "./public-bookings/public-bookings.module";
 import { GuestAccountsModule } from "./guest-accounts/guest-accounts.module";
+import { SessionsModule } from "./sessions/sessions.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { GuestAccountsModule } from "./guest-accounts/guest-accounts.module";
     PublicHotelsModule,
     PublicBookingsModule,
     GuestAccountsModule,
+    SessionsModule,
   ],
 })
 export class AppModule {}

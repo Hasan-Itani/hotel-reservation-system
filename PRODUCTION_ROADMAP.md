@@ -188,6 +188,8 @@ Legend:
   - [x] Email verification
   - [x] Password reset
 - [ ] Migrate authentication and session handling without breaking existing Next.js sessions during the transition.
+  - [x] Add a NestJS bridge to validate existing Next.js sessions and resolve the current account.
+  - [ ] Migrate login and logout.
 - [ ] Migrate transactional booking, pricing, inventory locking, and payment flows.
 - [ ] Migrate admin API domains:
   - Rooms and room types
@@ -200,6 +202,7 @@ Legend:
   - [x] Guest registration POST routes proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Guest email verification POST proxies to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Password reset request and completion POST routes proxy to NestJS when `NEST_API_BASE_URL` is configured.
+  - [x] Current-account reads proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [ ] Remaining migrated domains
 - [ ] Remove migrated Next.js route handlers only after API contract and production verification.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
@@ -207,7 +210,7 @@ Legend:
 ## Next Recommended Work
 
 1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
-2. Verify password reset through the Next.js proxy, then plan the session bridge for guest profile and bookings.
+2. Verify the session bridge with an existing guest login, then migrate guest profile and bookings one at a time.
 3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes

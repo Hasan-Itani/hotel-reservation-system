@@ -133,6 +133,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 Changing `JWT_SECRET` invalidates existing login sessions.
 
+When enabling the NestJS proxy, deploy NestJS first with the same `JWT_SECRET` and database as Next.js. Use a trusted HTTPS NestJS URL in production. Next.js issues the session cookie and forwards its token to NestJS for account validation.
+
 Required in production for distributed rate limiting:
 
 ```env

@@ -27,6 +27,8 @@ Legend:
 - [x] Add admin audit page.
 - [x] Improve audit page wording and metadata dates so they are admin-friendly, not developer-only.
 - [x] Expand audit coverage for rooms, room types, staff, reservations, payments, and inquiries.
+- [x] Accept blank optional phone and special-request fields in guest bookings.
+- [x] Show that a newly created reservation is pending on the booking success screen.
 
 ## Phase 2: Production Auth And Security
 
@@ -194,6 +196,8 @@ Legend:
   - [x] Redirect unauthorized browser visits away from admin sections and filter navigation by hotel permissions.
   - [x] Migrate logout with a local cookie-clearing fallback.
 - [ ] Migrate transactional booking, pricing, inventory locking, and payment flows.
+  - [x] Migrate guest reservation creation, including pricing and per-hotel inventory locking.
+  - [ ] Migrate payment writes.
 - [ ] Migrate admin API domains:
   - Rooms and room types
   - Reservations and payments
@@ -210,6 +214,7 @@ Legend:
   - [x] Guest booking lists proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Login proxies to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Logout proxies to NestJS when `NEST_API_BASE_URL` is configured.
+  - [x] Guest reservation creation proxies to NestJS when `NEST_API_BASE_URL` is configured.
   - [ ] Remaining migrated domains
 - [ ] Remove migrated Next.js route handlers only after API contract and production verification.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
@@ -217,7 +222,7 @@ Legend:
 ## Next Recommended Work
 
 1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
-2. Verify guest and staff logout, then migrate transactional booking and inventory locking.
+2. Verify guest reservation creation through NestJS, then migrate payment writes.
 3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes

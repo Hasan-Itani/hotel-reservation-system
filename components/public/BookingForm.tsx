@@ -353,12 +353,12 @@ export function BookingForm({
           <Badge variant="success">Booking created</Badge>
 
           <h2 className="mt-4 text-3xl font-black tracking-tight text-luxury-ink sm:text-4xl">
-            Reservation confirmed.
+            Reservation created
           </h2>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-            Save your reservation number. You can use your guest account to view
-            booking details and continue to payment.
+            Your reservation is pending. Save your reservation number and use
+            your guest account to view booking details and continue to payment.
           </p>
         </div>
 

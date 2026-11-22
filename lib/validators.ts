@@ -1,5 +1,11 @@
 import { z } from "zod";
 import {
+  dateOnlySchema,
+  publicReservationCreateSchema,
+  reservationRoomInputSchema,
+} from "../apps/api/src/booking-domain/public-reservation-schema";
+export { publicReservationCreateSchema, reservationRoomInputSchema };
+import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
 } from "@/lib/passwordPolicy";
@@ -351,25 +357,6 @@ export const hotelStaffUpdateSchema = z
 export type HotelStaffCreateInput = z.infer<typeof hotelStaffCreateSchema>;
 export type HotelStaffUpdateInput = z.infer<typeof hotelStaffUpdateSchema>;
 
-const dateOnlySchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, {
-    message: "Date must be in YYYY-MM-DD format",
-  })
-  .refine(
-    (value) => {
-      const date = new Date(`${value}T00:00:00.000Z`);
-
-      return (
-        !Number.isNaN(date.getTime()) &&
-        date.toISOString().slice(0, 10) === value
-      );
-    },
-    {
-      message: "Date must be a valid calendar date",
-    },
-  );
-
 const reservationStatusSchema = z.enum([
   "PENDING",
   "CONFIRMED",
@@ -398,13 +385,6 @@ export const availabilityQuerySchema = z
     message: "checkOutDate must be after checkInDate",
     path: ["checkOutDate"],
   });
-
-export const reservationRoomInputSchema = z
-  .object({
-    roomTypeId: z.string().uuid(),
-    guests: z.coerce.number().int().min(1).max(20),
-  })
-  .strict();
 
 export const reservationCreateSchema = z
   .object({
@@ -444,44 +424,6 @@ export const reservationCreateSchema = z
         path: ["rooms"],
         message:
           "Selected rooms do not have enough total guest capacity for this reservation",
-      });
-    }
-  });
-
-export const publicReservationCreateSchema = z
-  .object({
-    guestFirstName: z.string().trim().min(1).max(100),
-    guestLastName: z.string().trim().min(1).max(100),
-    guestEmail: z.string().trim().toLowerCase().email(),
-    guestPhone: createNullableTrimmedString(30),
-    checkInDate: dateOnlySchema,
-    checkOutDate: dateOnlySchema,
-    adults: z.coerce.number().int().min(1).max(20),
-    children: z.coerce.number().int().min(0).max(20).default(0),
-    specialRequests: createNullableTrimmedString(2000),
-    rooms: z.array(reservationRoomInputSchema).min(1).max(10),
-  })
-  .strict()
-  .superRefine((data, ctx) => {
-    if (data.checkOutDate <= data.checkInDate) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["checkOutDate"],
-        message: "checkOutDate must be after checkInDate",
-      });
-    }
-
-    const totalRequestedGuests = data.rooms.reduce(
-      (sum, room) => sum + room.guests,
-      0,
-    );
-
-    if (totalRequestedGuests < data.adults + data.children) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["rooms"],
-        message:
-          "Selected rooms do not have enough total guest capacity for this booking",
       });
     }
   });

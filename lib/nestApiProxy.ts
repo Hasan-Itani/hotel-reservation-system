@@ -27,6 +27,8 @@ type NestProxyOptions = {
   receiveSession?: (token: string) => Promise<void>;
   jsonBody?: string;
   signal?: AbortSignal;
+  rejectRedirects?: boolean;
+  unavailableError?: string;
 };
 
 function getNestApiBaseUrl() {
@@ -96,8 +98,8 @@ export async function proxyNestRequest(
     return null;
   }
 
+  const usesSession = options.sessionToken || options.receiveSession;
   try {
-    const usesSession = options.sessionToken || options.receiveSession;
     const method = request.method.toUpperCase();
     const headers = buildRequestHeaders(request);
     if (options.jsonBody !== undefined) {
@@ -112,7 +114,7 @@ export async function proxyNestRequest(
       cache: "no-store",
       headers,
       signal: options.signal,
-      ...(usesSession ? { redirect: "error" as const } : {}),
+      ...(usesSession || options.rejectRedirects ? { redirect: "error" as const } : {}),
       ...(method === "GET" || method === "HEAD"
         ? {}
         : {
@@ -136,8 +138,8 @@ export async function proxyNestRequest(
     });
   } catch {
     return NextResponse.json(
-      { error: options.sessionToken || options.receiveSession ? "Session service is unavailable" : "Hotel catalog service is unavailable" },
-      { status: 502 },
+      { error: options.unavailableError ?? (usesSession ? "Session service is unavailable" : "Hotel catalog service is unavailable") },
+      { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

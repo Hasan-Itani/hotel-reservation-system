@@ -427,7 +427,8 @@ export function PublicPaymentForm({
               </div>
 
               <div className="rounded-3xl border border-warning-soft bg-warning-soft px-5 py-4 text-sm leading-6 text-warning">
-                Test card: <strong>4242424242424242</strong>. Failed card:{" "}
+                Demo only. Do not enter real card details. Test card:{" "}
+                <strong>4242424242424242</strong>. Failed card:{" "}
                 <strong>4000000000000002</strong>.
               </div>
 

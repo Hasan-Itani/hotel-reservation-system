@@ -12,13 +12,12 @@ export class SessionsController {
     @Res() reply: FastifyReply,
   ) {
     reply.header("Cache-Control", "private, no-store");
-    const token = authorization?.match(/^Bearer ([^\s,]+)$/i)?.[1];
-    const user = token ? await this.sessions.getCurrentUser(token) : null;
+    const session = await this.sessions.getCurrentSession(authorization);
 
-    if (!user) {
+    if (!session) {
       return reply.status(401).send({ authenticated: false, user: null });
     }
 
-    return reply.send({ authenticated: true, user });
+    return reply.send({ authenticated: true, user: session.user });
   }
 }

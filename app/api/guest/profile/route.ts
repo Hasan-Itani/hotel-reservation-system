@@ -1,17 +1,33 @@
 import { NextResponse } from "next/server";
 import { getCurrentAuthUser } from "@/lib/auth";
+import { isNestApiProxyConfigured, proxyNestJsonRequest } from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
+import { getSessionToken } from "@/lib/session";
 import { guestProfileUpdateSchema } from "@/lib/validators";
 
 export const dynamic = "force-dynamic";
 
 export async function PUT(request: Request) {
+  const headers = { "Cache-Control": "private, no-store" };
+  if (isNestApiProxyConfigured()) {
+    const sessionToken = await getSessionToken();
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
+    }
+
+    const response = await proxyNestJsonRequest(request, "/guest/profile", { sessionToken });
+    if (response) {
+      response.headers.set("Cache-Control", headers["Cache-Control"]);
+      return response;
+    }
+  }
+
   const currentUser = await getCurrentAuthUser();
 
   if (!currentUser) {
     return NextResponse.json(
       { error: "Unauthorized" },
-      { status: 401 },
+      { status: 401, headers },
     );
   }
 
@@ -22,7 +38,7 @@ export async function PUT(request: Request) {
   } catch {
     return NextResponse.json(
       { error: "Invalid JSON body" },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
 
@@ -34,7 +50,7 @@ export async function PUT(request: Request) {
         error: "Invalid profile data",
         details: parsed.error.flatten(),
       },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
 
@@ -65,5 +81,5 @@ export async function PUT(request: Request) {
       globalRoles: currentUser.globalRoles,
       hotelRoles: currentUser.hotelRoles,
     },
-  });
+  }, { headers });
 }

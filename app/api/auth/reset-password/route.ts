@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { createAuditLog } from "@/lib/auditLog";
 import { getClientIp } from "@/lib/getClientIp";
-import { proxyNestJsonPost } from "@/lib/nestApiProxy";
+import { proxyNestJsonRequest } from "@/lib/nestApiProxy";
 import { hashPasswordResetToken } from "@/lib/passwordReset";
 import { isCurrentPassword } from "@/lib/passwordSecurity";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +12,7 @@ import { resetPasswordSchema } from "@/lib/validators";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const proxiedResponse = await proxyNestJsonPost(request, "/guest/reset-password");
+  const proxiedResponse = await proxyNestJsonRequest(request, "/guest/reset-password");
   if (proxiedResponse) {
     return proxiedResponse;
   }

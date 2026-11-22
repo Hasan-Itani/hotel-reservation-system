@@ -36,6 +36,27 @@ export class GuestAccountsService {
     @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
+  async updateProfile(
+    userId: string,
+    sessionVersion: number,
+    profile: { firstName: string; lastName: string; phone: string | null },
+  ) {
+    const [user] = await this.prisma.user.updateManyAndReturn({
+      where: { id: userId, sessionVersion, status: "ACTIVE", deletedAt: null },
+      data: profile,
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        status: true,
+        emailVerifiedAt: true,
+      },
+    });
+
+    return user ?? null;
+  }
+
   async register(input: RegisterGuestInput, origin: string) {
     const existingUser = await this.prisma.user.findUnique({
       where: {

@@ -9,7 +9,7 @@ import {
 } from "@/lib/authRateLimit";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { getClientIp } from "@/lib/getClientIp";
-import { proxyNestJsonPost } from "@/lib/nestApiProxy";
+import { proxyNestJsonRequest } from "@/lib/nestApiProxy";
 import {
   createPasswordResetToken,
   getPasswordResetExpiry,
@@ -29,7 +29,7 @@ const PASSWORD_RESET_SEND_FAILED_RESPONSE =
   "We could not send the password reset email right now. Please try again later.";
 
 export async function POST(request: Request) {
-  const proxiedResponse = await proxyNestJsonPost(request, "/guest/forgot-password");
+  const proxiedResponse = await proxyNestJsonRequest(request, "/guest/forgot-password");
   if (proxiedResponse) {
     return proxiedResponse;
   }

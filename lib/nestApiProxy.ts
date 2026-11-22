@@ -124,7 +124,11 @@ export function proxyNestGet(request: Request, path: string) {
   return proxyNestRequest(request, path);
 }
 
-export async function proxyNestJsonPost(request: Request, path: string) {
+export async function proxyNestJsonRequest(
+  request: Request,
+  path: string,
+  options?: { sessionToken?: string },
+) {
   if (!isNestApiProxyConfigured()) {
     return null;
   }
@@ -137,5 +141,5 @@ export async function proxyNestJsonPost(request: Request, path: string) {
 
   const headers = new Headers(request.headers);
   headers.set("content-type", "application/json");
-  return proxyNestRequest(new Request(request.clone(), { headers }), path);
+  return proxyNestRequest(new Request(request.clone(), { headers }), path, options);
 }

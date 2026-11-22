@@ -1,7 +1,8 @@
-import { Body, Controller, Inject, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Headers, Inject, Post, Put, Req, Res } from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { RateLimitResult, RateLimitService } from "../common/rate-limit/rate-limit.service";
+import { SessionsService } from "../sessions/sessions.service";
 import {
   GuestAccountsService,
   VERIFICATION_ALREADY_SENT_RESPONSE,
@@ -66,6 +67,12 @@ const verifyEmailSchema = z
   .object({ token: z.string().trim().min(32).max(300) })
   .strict();
 
+const guestProfileUpdateSchema = guestRegisterSchema.pick({
+  firstName: true,
+  lastName: true,
+  phone: true,
+});
+
 const forgotPasswordSchema = z
   .object({ email: z.string().trim().toLowerCase().email() })
   .strict();
@@ -87,7 +94,44 @@ export class GuestAccountsController {
     private readonly guestAccounts: GuestAccountsService,
     @Inject(RateLimitService)
     private readonly rateLimit: RateLimitService,
+    @Inject(SessionsService)
+    private readonly sessions: SessionsService,
   ) {}
+
+  @Put("profile")
+  async updateProfile(
+    @Headers("authorization") authorization: string | undefined,
+    @Body() body: unknown,
+    @Res() reply: FastifyReply,
+  ) {
+    reply.header("Cache-Control", "private, no-store");
+    const session = await this.sessions.getCurrentSession(authorization);
+    if (!session) {
+      return reply.status(401).send({ error: "Unauthorized" });
+    }
+
+    const profile = guestProfileUpdateSchema.safeParse(body);
+    if (!profile.success) {
+      return reply.status(400).send({
+        error: "Invalid profile data",
+        details: profile.error.flatten(),
+      });
+    }
+
+    const user = await this.guestAccounts.updateProfile(
+      session.user.id,
+      session.sessionVersion,
+      profile.data,
+    );
+    if (!user) {
+      return reply.status(401).send({ error: "Unauthorized" });
+    }
+
+    return reply.send({
+      message: "Profile updated",
+      user: { ...session.user, ...user },
+    });
+  }
 
   @Post("register")
   async register(

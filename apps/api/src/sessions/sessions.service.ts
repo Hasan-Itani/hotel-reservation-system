@@ -9,7 +9,12 @@ export class SessionsService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
-  async getCurrentUser(token: string) {
+  async getCurrentSession(authorization: string | undefined) {
+    const token = authorization?.match(/^Bearer ([^\s,]+)$/i)?.[1];
+    if (!token) {
+      return null;
+    }
+
     const secret = this.config.get<string>("JWT_SECRET");
     if (!secret) {
       throw new ServiceUnavailableException("Session validation is not configured");
@@ -57,7 +62,7 @@ export class SessionsService {
       return null;
     }
 
-    return {
+    const account = {
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -72,5 +77,7 @@ export class SessionsService {
         role: Role.name,
       })),
     };
+
+    return { user: account, sessionVersion };
   }
 }

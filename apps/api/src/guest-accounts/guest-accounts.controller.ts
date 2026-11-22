@@ -1,8 +1,9 @@
-import { Body, Controller, Headers, Inject, Post, Put, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Inject, Post, Put, Req, Res } from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { RateLimitResult, RateLimitService } from "../common/rate-limit/rate-limit.service";
 import { SessionsService } from "../sessions/sessions.service";
+import { PublicBookingsService } from "../public-bookings/public-bookings.service";
 import {
   GuestAccountsService,
   VERIFICATION_ALREADY_SENT_RESPONSE,
@@ -96,7 +97,24 @@ export class GuestAccountsController {
     private readonly rateLimit: RateLimitService,
     @Inject(SessionsService)
     private readonly sessions: SessionsService,
+    @Inject(PublicBookingsService)
+    private readonly bookings: PublicBookingsService,
   ) {}
+
+  @Get("bookings")
+  async getBookings(
+    @Headers("authorization") authorization: string | undefined,
+    @Res() reply: FastifyReply,
+  ) {
+    reply.header("Cache-Control", "private, no-store");
+    const session = await this.sessions.getCurrentSession(authorization);
+    if (!session) {
+      return reply.status(401).send({ error: "Unauthorized" });
+    }
+
+    const bookings = await this.bookings.findForGuest(session.user.id, session.sessionVersion);
+    return reply.send({ bookings });
+  }
 
   @Put("profile")
   async updateProfile(

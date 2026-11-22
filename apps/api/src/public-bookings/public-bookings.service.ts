@@ -1,6 +1,99 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { PaymentStatus } from "@prisma/client";
+import { PaymentStatus, type Prisma } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
+
+const publicBookingSelect = {
+  reservationNumber: true,
+  status: true,
+  guestFirstName: true,
+  guestLastName: true,
+  guestEmail: true,
+  guestPhone: true,
+  checkInDate: true,
+  checkOutDate: true,
+  adults: true,
+  children: true,
+  specialRequests: true,
+  subtotal: true,
+  taxes: true,
+  serviceFee: true,
+  discountAmount: true,
+  total: true,
+  currency: true,
+  createdAt: true,
+  confirmedAt: true,
+  cancelledAt: true,
+  checkedInAt: true,
+  checkedOutAt: true,
+  noShowAt: true,
+  hotel: {
+    select: {
+      name: true,
+      slug: true,
+      city: true,
+      country: true,
+      currency: true,
+      checkInTime: true,
+      checkOutTime: true,
+    },
+  },
+  reservationRooms: {
+    select: {
+      guests: true,
+      nightlyPrice: true,
+      room: {
+        select: {
+          roomNumber: true,
+          floor: true,
+        },
+      },
+      roomType: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          basePrice: true,
+          capacityAdults: true,
+          capacityChildren: true,
+          bedType: true,
+          roomSizeSqm: true,
+          images: {
+            orderBy: {
+              sortOrder: "asc",
+            },
+            select: {
+              id: true,
+              url: true,
+              altText: true,
+              sortOrder: true,
+              isPrimary: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  payments: {
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      methodLabel: true,
+      cardLast4: true,
+      isMock: true,
+      amount: true,
+      currency: true,
+      status: true,
+      paidAt: true,
+      createdAt: true,
+    },
+  },
+} satisfies Prisma.ReservationSelect;
+
+type PublicBookingReservation = Prisma.ReservationGetPayload<{
+  select: typeof publicBookingSelect;
+}>;
 
 function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -22,100 +115,27 @@ export class PublicBookingsService {
           deletedAt: null,
         },
       },
-      select: {
-        reservationNumber: true,
-        status: true,
-        guestFirstName: true,
-        guestLastName: true,
-        guestEmail: true,
-        guestPhone: true,
-        checkInDate: true,
-        checkOutDate: true,
-        adults: true,
-        children: true,
-        specialRequests: true,
-        subtotal: true,
-        taxes: true,
-        serviceFee: true,
-        discountAmount: true,
-        total: true,
-        currency: true,
-        createdAt: true,
-        confirmedAt: true,
-        cancelledAt: true,
-        checkedInAt: true,
-        checkedOutAt: true,
-        noShowAt: true,
-        hotel: {
-          select: {
-            name: true,
-            slug: true,
-            city: true,
-            country: true,
-            currency: true,
-            checkInTime: true,
-            checkOutTime: true,
-          },
-        },
-        reservationRooms: {
-          select: {
-            guests: true,
-            nightlyPrice: true,
-            room: {
-              select: {
-                roomNumber: true,
-                floor: true,
-              },
-            },
-            roomType: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                description: true,
-                basePrice: true,
-                capacityAdults: true,
-                capacityChildren: true,
-                bedType: true,
-                roomSizeSqm: true,
-                images: {
-                  orderBy: {
-                    sortOrder: "asc",
-                  },
-                  select: {
-                    id: true,
-                    url: true,
-                    altText: true,
-                    sortOrder: true,
-                    isPrimary: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        payments: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          select: {
-            methodLabel: true,
-            cardLast4: true,
-            isMock: true,
-            amount: true,
-            currency: true,
-            status: true,
-            paidAt: true,
-            createdAt: true,
-          },
-        },
-      },
+      select: publicBookingSelect,
     });
 
-    if (!reservation) {
-      return null;
-    }
+    return reservation ? this.serializeBooking(reservation) : null;
+  }
 
+  async findForGuest(userId: string, sessionVersion: number) {
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        userId,
+        user: { status: "ACTIVE", deletedAt: null, sessionVersion },
+        hotel: { deletedAt: null },
+      },
+      select: publicBookingSelect,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return reservations.map((reservation) => this.serializeBooking(reservation));
+  }
+
+  private serializeBooking(reservation: PublicBookingReservation) {
     const total = roundMoney(Number(reservation.total));
     const paid = roundMoney(
       reservation.payments

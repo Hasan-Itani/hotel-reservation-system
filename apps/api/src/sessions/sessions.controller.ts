@@ -57,15 +57,18 @@ export class SessionsController {
         return reply.status(result.status).send({ error: result.error });
       }
 
-      const secure = this.config.get<string>("NODE_ENV") === "production" ? "; Secure" : "";
-      reply.header(
-        "Set-Cookie",
-        `session=${result.token}; Path=/; Max-Age=${SESSION_TTL_SECONDS}; HttpOnly; SameSite=Lax${secure}`,
-      );
+      this.setSessionCookie(reply, result.token, SESSION_TTL_SECONDS);
       return reply.status(200).send({ message: "Login successful", user: result.user });
     } catch {
       return reply.status(500).send({ error: "Something went wrong during login" });
     }
+  }
+
+  @Post("logout")
+  logout(@Res() reply: FastifyReply) {
+    reply.header("Cache-Control", "private, no-store");
+    this.setSessionCookie(reply, "", 0);
+    return reply.status(200).send({ message: "Logout successful" });
   }
 
   @Get("me")
@@ -87,6 +90,14 @@ export class SessionsController {
     this.setRateLimitHeaders(reply, limiter);
     reply.header("Retry-After", String(limiter.retryAfterSeconds));
     return reply.status(429).send({ error });
+  }
+
+  private setSessionCookie(reply: FastifyReply, value: string, maxAge: number) {
+    const secure = this.config.get<string>("NODE_ENV") === "production" ? "; Secure" : "";
+    reply.header(
+      "Set-Cookie",
+      `session=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`,
+    );
   }
 
   private setRateLimitHeaders(reply: FastifyReply, limiter: RateLimitResult) {

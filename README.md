@@ -135,6 +135,8 @@ Changing `JWT_SECRET` invalidates existing login sessions.
 
 When enabling the NestJS proxy, deploy NestJS first with the same `JWT_SECRET` and database as Next.js. Use a trusted HTTPS NestJS URL in production. NestJS validates credentials and signs the session token. Next.js sets the browser cookie and forwards its token to NestJS for account validation.
 
+Sign-out clears the session cookie from the current browser, including when NestJS is unavailable. Password reset invalidates existing sessions across browsers.
+
 Required in production for distributed rate limiting:
 
 ```env

@@ -26,6 +26,7 @@ type NestProxyOptions = {
   sessionToken?: string;
   receiveSession?: (token: string) => Promise<void>;
   jsonBody?: string;
+  signal?: AbortSignal;
 };
 
 function getNestApiBaseUrl() {
@@ -110,6 +111,7 @@ export async function proxyNestRequest(
       method,
       cache: "no-store",
       headers,
+      signal: options.signal,
       ...(usesSession ? { redirect: "error" as const } : {}),
       ...(method === "GET" || method === "HEAD"
         ? {}

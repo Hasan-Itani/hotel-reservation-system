@@ -3,8 +3,8 @@ import { GuestLoginForm } from "@/components/guest/GuestLoginForm";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
-import { canEnterAdmin } from "@/lib/frontend/permissions";
-import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
+import { getLoginRedirectPath } from "@/lib/frontend/login-redirect";
+import { getOptionalRedirectPath } from "@/lib/frontend/safe-redirect";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,34 +15,18 @@ export const metadata: Metadata = {
 
 type GuestLoginPageProps = {
   searchParams?: Promise<{
-    next?: string;
+    next?: string | string[];
   }>;
 };
-
-function resolveLoggedInRedirect(input: {
-  next: string;
-  canAccessAdmin: boolean;
-}) {
-  if (input.next.startsWith("/admin") && !input.canAccessAdmin) {
-    return "/guest/account";
-  }
-
-  return input.next;
-}
 
 export default async function GuestLoginPage({
   searchParams,
 }: GuestLoginPageProps) {
   const [user, query] = await Promise.all([getServerAuthUser(), searchParams]);
-  const next = getSafeRedirectPath(query?.next);
+  const next = getOptionalRedirectPath(query?.next);
 
   if (user) {
-    redirect(
-      resolveLoggedInRedirect({
-        next,
-        canAccessAdmin: canEnterAdmin(user),
-      }),
-    );
+    redirect(getLoginRedirectPath(user, next));
   }
 
   return (

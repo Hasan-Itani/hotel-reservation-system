@@ -190,6 +190,7 @@ Legend:
 - [ ] Migrate authentication and session handling without breaking existing Next.js sessions during the transition.
   - [x] Add a NestJS bridge to validate existing Next.js sessions and resolve the current account.
   - [x] Migrate login.
+  - [x] Default staff sign-in to the admin dashboard and guest sign-in to the guest account.
   - [ ] Complete logout migration.
 - [ ] Migrate transactional booking, pricing, inventory locking, and payment flows.
 - [ ] Migrate admin API domains:

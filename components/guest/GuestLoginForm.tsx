@@ -4,10 +4,11 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
+import { getLoginRedirectPath } from "@/lib/frontend/login-redirect";
 import type { LoginResponse } from "@/lib/frontend/types";
 
 type GuestLoginFormProps = {
-  next: string;
+  next: string | null;
 };
 
 export function GuestLoginForm({ next }: GuestLoginFormProps) {
@@ -26,7 +27,7 @@ export function GuestLoginForm({ next }: GuestLoginFormProps) {
     setIsSubmitting(true);
 
     try {
-      await clientFetchJson<LoginResponse>("/api/auth/login", {
+      const { user } = await clientFetchJson<LoginResponse>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
           email,
@@ -34,7 +35,7 @@ export function GuestLoginForm({ next }: GuestLoginFormProps) {
         }),
       });
 
-      router.replace(next);
+      router.replace(getLoginRedirectPath(user, next));
       router.refresh();
     } catch (caughtError) {
       if (caughtError instanceof FrontendApiError) {
@@ -107,7 +108,7 @@ export function GuestLoginForm({ next }: GuestLoginFormProps) {
       <p className="text-center text-sm text-slate-600">
         New guest?{" "}
         <Link
-          href={`/guest/register?next=${encodeURIComponent(next)}`}
+          href={next ? `/guest/register?next=${encodeURIComponent(next)}` : "/guest/register"}
           className="font-black text-luxury-gold transition hover:text-luxury-ink"
         >
           Create account

@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
-import { getSafeRedirectPath } from "@/lib/frontend/safe-redirect";
+import { getOptionalRedirectPath } from "@/lib/frontend/safe-redirect";
 
 type LoginPageProps = {
   searchParams?: Promise<{
-    next?: string;
+    next?: string | string[];
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const query = await searchParams;
-  const next = getSafeRedirectPath(query?.next);
+  const next = getOptionalRedirectPath(query?.next);
 
-  redirect(`/guest/login?next=${encodeURIComponent(next)}`);
+  redirect(next ? `/guest/login?next=${encodeURIComponent(next)}` : "/guest/login");
 }

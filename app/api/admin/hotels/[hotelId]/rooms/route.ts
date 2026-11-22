@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { listRooms } from "@/apps/api/src/admin-rooms/room-reads";
+import { proxyAdminRoomRead } from "@/lib/adminRoomReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -14,6 +16,10 @@ export async function GET(
   { params }: { params: Promise<{ hotelId: string }> },
 ) {
   const { hotelId } = await params;
+  const proxied = await proxyAdminRoomRead(request, hotelId, "rooms");
+  if (proxied) {
+    return proxied;
+  }
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -21,40 +27,7 @@ export async function GET(
     return auth.response;
   }
 
-  const rooms = await prisma.room.findMany({
-    where: {
-      hotelId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      hotelId: true,
-      roomTypeId: true,
-      roomNumber: true,
-      floor: true,
-      status: true,
-      notes: true,
-      createdAt: true,
-      updatedAt: true,
-      roomType: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          basePrice: true,
-          capacityAdults: true,
-          capacityChildren: true,
-          bedType: true,
-        },
-      },
-    },
-    orderBy: [{ floor: "asc" }, { roomNumber: "asc" }],
-  });
-
-  return NextResponse.json({
-    hotelId,
-    rooms,
-  });
+  return NextResponse.json(await listRooms(prisma, hotelId));
 }
 
 export async function POST(

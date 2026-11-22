@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getRoomById, getRoomSelect } from "@/apps/api/src/admin-rooms/room-reads";
+import { proxyAdminRoomRead } from "@/lib/adminRoomReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -23,42 +25,6 @@ function canManageRooms(user: AuthorizedUser, hotelId: string) {
     hasHotelRole(user, hotelId, "HOTEL_ADMIN") ||
     hasHotelRole(user, hotelId, "MANAGER")
   );
-}
-
-function getRoomSelect() {
-  return {
-    id: true,
-    hotelId: true,
-    roomTypeId: true,
-    roomNumber: true,
-    floor: true,
-    status: true,
-    notes: true,
-    createdAt: true,
-    updatedAt: true,
-    roomType: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        basePrice: true,
-        capacityAdults: true,
-        capacityChildren: true,
-        bedType: true,
-      },
-    },
-  } satisfies Prisma.RoomSelect;
-}
-
-async function getRoomById(hotelId: string, roomId: string) {
-  return prisma.room.findFirst({
-    where: {
-      id: roomId,
-      hotelId,
-      deletedAt: null,
-    },
-    select: getRoomSelect(),
-  });
 }
 
 async function getActiveReservationAssignmentForRoom(
@@ -97,6 +63,10 @@ export async function GET(
   },
 ) {
   const { hotelId, roomId } = await params;
+  const proxied = await proxyAdminRoomRead(request, hotelId, "rooms", roomId);
+  if (proxied) {
+    return proxied;
+  }
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -104,7 +74,7 @@ export async function GET(
     return auth.response;
   }
 
-  const room = await getRoomById(hotelId, roomId);
+  const room = await getRoomById(prisma, hotelId, roomId);
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AdminRoomsModule } from "./admin-rooms/admin-rooms.module";
 import { validateEnvironment } from "./common/config/environment";
 import { DatabaseModule } from "./database/database.module";
 import { HealthModule } from "./health/health.module";
@@ -25,6 +26,7 @@ import { SessionsModule } from "./sessions/sessions.module";
     HealthModule,
     PublicHotelsModule,
     PublicBookingsModule,
+    AdminRoomsModule,
     GuestAccountsModule,
     SessionsModule,
   ],

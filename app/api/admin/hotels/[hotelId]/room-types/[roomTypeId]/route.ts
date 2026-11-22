@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { formatRoomTypeResponse, getRoomTypeById, getRoomTypeSelect } from "@/apps/api/src/admin-rooms/room-reads";
+import { proxyAdminRoomRead } from "@/lib/adminRoomReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -62,57 +64,6 @@ function nullableDecimalChanged(
   return inputValue !== decimalToNumber(existingValue);
 }
 
-function getRoomTypeSelect() {
-  return {
-    id: true,
-    hotelId: true,
-    name: true,
-    slug: true,
-    description: true,
-    basePrice: true,
-    capacityAdults: true,
-    capacityChildren: true,
-    bedType: true,
-    roomSizeSqm: true,
-    createdAt: true,
-    updatedAt: true,
-    images: {
-      select: {
-        id: true,
-        url: true,
-        altText: true,
-        sortOrder: true,
-        isPrimary: true,
-      },
-      orderBy: {
-        sortOrder: "asc",
-      },
-    },
-    amenities: {
-      select: {
-        amenity: {
-          select: {
-            id: true,
-            name: true,
-            icon: true,
-          },
-        },
-      },
-    },
-  } satisfies Prisma.RoomTypeSelect;
-}
-
-async function getRoomTypeById(hotelId: string, roomTypeId: string) {
-  return prisma.roomType.findFirst({
-    where: {
-      id: roomTypeId,
-      hotelId,
-      deletedAt: null,
-    },
-    select: getRoomTypeSelect(),
-  });
-}
-
 async function getActiveReservationUsageForRoomType(
   hotelId: string,
   roomTypeId: string,
@@ -164,15 +115,6 @@ async function getReservationHistoryUsageForRoomType(
   });
 }
 
-function formatRoomTypeResponse(
-  roomType: NonNullable<Awaited<ReturnType<typeof getRoomTypeById>>>,
-) {
-  return {
-    ...roomType,
-    amenities: roomType.amenities.map((item) => item.amenity),
-  };
-}
-
 export async function GET(
   request: Request,
   {
@@ -182,6 +124,10 @@ export async function GET(
   },
 ) {
   const { hotelId, roomTypeId } = await params;
+  const proxied = await proxyAdminRoomRead(request, hotelId, "room-types", roomTypeId);
+  if (proxied) {
+    return proxied;
+  }
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -189,7 +135,7 @@ export async function GET(
     return auth.response;
   }
 
-  const roomType = await getRoomTypeById(hotelId, roomTypeId);
+  const roomType = await getRoomTypeById(prisma, hotelId, roomTypeId);
 
   if (!roomType) {
     return NextResponse.json({ error: "Room type not found" }, { status: 404 });

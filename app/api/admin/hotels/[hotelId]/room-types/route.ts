@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { listRoomTypes } from "@/apps/api/src/admin-rooms/room-reads";
+import { proxyAdminRoomRead } from "@/lib/adminRoomReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -22,6 +24,10 @@ export async function GET(
   { params }: { params: Promise<{ hotelId: string }> },
 ) {
   const { hotelId } = await params;
+  const proxied = await proxyAdminRoomRead(request, hotelId, "room-types");
+  if (proxied) {
+    return proxied;
+  }
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -29,65 +35,7 @@ export async function GET(
     return auth.response;
   }
 
-  const roomTypes = await prisma.roomType.findMany({
-    where: {
-      hotelId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      hotelId: true,
-      name: true,
-      slug: true,
-      description: true,
-      basePrice: true,
-      capacityAdults: true,
-      capacityChildren: true,
-      bedType: true,
-      roomSizeSqm: true,
-      createdAt: true,
-      _count: {
-        select: {
-          rooms: true,
-          reservationRooms: true,
-        },
-      },
-      images: {
-        select: {
-          id: true,
-          url: true,
-          altText: true,
-          sortOrder: true,
-          isPrimary: true,
-        },
-        orderBy: {
-          sortOrder: "asc",
-        },
-      },
-      amenities: {
-        select: {
-          amenity: {
-            select: {
-              id: true,
-              name: true,
-              icon: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
-
-  return NextResponse.json({
-    hotelId,
-    roomTypes: roomTypes.map((roomType) => ({
-      ...roomType,
-      amenities: roomType.amenities.map((item) => item.amenity),
-    })),
-  });
+  return NextResponse.json(await listRoomTypes(prisma, hotelId));
 }
 
 export async function POST(

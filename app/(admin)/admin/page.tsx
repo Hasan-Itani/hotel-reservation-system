@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
+import { requireAdminPageAccess } from "@/lib/frontend/admin-page-access";
 import { serverFetchJson } from "@/lib/frontend/api-server";
 import {
   canManageHotelSetup,
@@ -20,6 +20,7 @@ import type {
 type AdminDashboardPageProps = {
   searchParams?: Promise<{
     hotelId?: string;
+    notice?: string;
   }>;
 };
 
@@ -42,12 +43,8 @@ function formatCount(value: number | null) {
 export default async function AdminDashboardPage({
   searchParams,
 }: AdminDashboardPageProps) {
-  const user = await getServerAuthUser();
-  const hotels = await getServerHotels();
-
   const params = await searchParams;
-  const selectedHotelId = params?.hotelId || hotels[0]?.id || "";
-  const selectedHotel = hotels.find((hotel) => hotel.id === selectedHotelId);
+  const { user, hotels, selectedHotel } = await requireAdminPageAccess("/admin", params?.hotelId);
 
   const canSetup =
     user && selectedHotel ? canManageHotelSetup(user, selectedHotel.id) : false;
@@ -151,6 +148,11 @@ export default async function AdminDashboardPage({
 
   return (
     <div className="space-y-6">
+      {params?.notice === "section-unavailable" ? (
+        <p role="status" className="rounded-2xl border border-luxury-stone bg-luxury-cream px-4 py-3 text-sm font-semibold text-luxury-ink">
+          You don’t have access to that section.
+        </p>
+      ) : null}
       <section className="overflow-hidden rounded-[2rem] border border-luxury-stone bg-luxury-navy text-white shadow-xl shadow-slate-900/10">
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
           <div>

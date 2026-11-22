@@ -1,9 +1,7 @@
-import { redirect } from "next/navigation";
 import { RoomsClient } from "@/components/rooms/RoomsClient";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
+import { requireAdminPageAccess } from "@/lib/frontend/admin-page-access";
 import { serverFetchJson, ServerApiError } from "@/lib/frontend/api-server";
-import { canManageRooms } from "@/lib/frontend/permissions";
 import type {
   RoomsResponse,
   RoomTypesResponse,
@@ -16,17 +14,8 @@ type RoomsPageProps = {
 };
 
 export default async function RoomsPage({ searchParams }: RoomsPageProps) {
-  const user = await getServerAuthUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const hotels = await getServerHotels();
   const params = await searchParams;
-
-  const selectedHotelId = params?.hotelId || hotels[0]?.id || "";
-  const selectedHotel = hotels.find((hotel) => hotel.id === selectedHotelId);
+  const { selectedHotel } = await requireAdminPageAccess("/admin/rooms", params?.hotelId);
 
   if (!selectedHotel) {
     return (
@@ -35,19 +24,6 @@ export default async function RoomsPage({ searchParams }: RoomsPageProps) {
           <h1 className="text-xl font-bold text-foreground">Rooms</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             No hotel is available for this account.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!canManageRooms(user, selectedHotel.id)) {
-    return (
-      <Card>
-        <CardContent>
-          <h1 className="text-xl font-bold text-foreground">Access denied</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You need HOTEL_ADMIN or MANAGER access to manage rooms.
           </p>
         </CardContent>
       </Card>

@@ -95,3 +95,31 @@ export function canViewAudit(user: AuthUser, hotelId: string) {
     hasHotelRole(user, hotelId, HOTEL_ROLES.MANAGER)
   );
 }
+
+const adminPagePermissions = new Map([
+  ["/admin/rooms", canManageRooms],
+  ["/admin/room-types", canManageHotelSetup],
+  ["/admin/reservations", canManageReservations],
+  ["/admin/payments", canManagePayments],
+  ["/admin/guests", canViewGuests],
+  ["/admin/inquiries", canViewGuests],
+  ["/admin/staff", canManageStaff],
+  ["/admin/audit", canViewAudit],
+]);
+
+export function canOpenAdminSection(user: AuthUser, path: string, hotelId?: string) {
+  if (!canEnterAdmin(user) || (hotelId && !canAccessSelectedHotel(user, hotelId))) {
+    return false;
+  }
+  if (path === "/admin") {
+    return true;
+  }
+
+  const canOpenPage = adminPagePermissions.get(path);
+  if (!canOpenPage) {
+    return false;
+  }
+  return hotelId
+    ? canOpenPage(user, hotelId)
+    : isSuperAdmin(user) || user.hotelRoles.some((role) => canOpenPage(user, role.hotelId));
+}

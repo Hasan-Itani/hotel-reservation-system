@@ -1,9 +1,7 @@
-import { redirect } from "next/navigation";
 import { AdminInquiriesClient } from "@/components/inquiries/AdminInquiriesClient";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
+import { requireAdminPageAccess } from "@/lib/frontend/admin-page-access";
 import { serverFetchJson, ServerApiError } from "@/lib/frontend/api-server";
-import { canViewGuests } from "@/lib/frontend/permissions";
 import type { AdminHotelInquiriesResponse } from "@/lib/frontend/types";
 
 type AdminInquiriesPageProps = {
@@ -15,17 +13,8 @@ type AdminInquiriesPageProps = {
 export default async function AdminInquiriesPage({
   searchParams,
 }: AdminInquiriesPageProps) {
-  const user = await getServerAuthUser();
-
-  if (!user) {
-    redirect(`/guest/login?next=${encodeURIComponent("/admin/inquiries")}`);
-  }
-
-  const hotels = await getServerHotels();
   const params = await searchParams;
-
-  const selectedHotelId = params?.hotelId || hotels[0]?.id || "";
-  const selectedHotel = hotels.find((hotel) => hotel.id === selectedHotelId);
+  const { selectedHotel } = await requireAdminPageAccess("/admin/inquiries", params?.hotelId);
 
   if (!selectedHotel) {
     return (
@@ -34,20 +23,6 @@ export default async function AdminInquiriesPage({
           <h1 className="text-xl font-bold text-foreground">Inquiries</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             No hotel is available for this account.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!canViewGuests(user, selectedHotel.id)) {
-    return (
-      <Card>
-        <CardContent>
-          <h1 className="text-xl font-bold text-foreground">Access denied</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You need HOTEL_ADMIN, MANAGER, or RECEPTIONIST access to view hotel
-            inquiries.
           </p>
         </CardContent>
       </Card>

@@ -191,6 +191,7 @@ Legend:
   - [x] Add a NestJS bridge to validate existing Next.js sessions and resolve the current account.
   - [x] Migrate login.
   - [x] Default staff sign-in to the admin dashboard and guest sign-in to the guest account.
+  - [x] Redirect unauthorized browser visits away from admin sections and filter navigation by hotel permissions.
   - [x] Migrate logout with a local cookie-clearing fallback.
 - [ ] Migrate transactional booking, pricing, inventory locking, and payment flows.
 - [ ] Migrate admin API domains:

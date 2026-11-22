@@ -1,10 +1,8 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { PaymentsClient } from "@/components/payments/PaymentsClient";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getServerAuthUser, getServerHotels } from "@/lib/frontend/auth-server";
+import { requireAdminPageAccess } from "@/lib/frontend/admin-page-access";
 import { serverFetchJson, ServerApiError } from "@/lib/frontend/api-server";
-import { canManagePayments } from "@/lib/frontend/permissions";
 import type {
   ReservationPaymentsResponse,
   ReservationsResponse,
@@ -18,16 +16,8 @@ type PaymentsPageProps = {
 };
 
 export default async function PaymentsPage({ searchParams }: PaymentsPageProps) {
-  const user = await getServerAuthUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const [hotels, params] = await Promise.all([getServerHotels(), searchParams]);
-
-  const selectedHotelId = params?.hotelId || hotels[0]?.id || "";
-  const selectedHotel = hotels.find((hotel) => hotel.id === selectedHotelId);
+  const params = await searchParams;
+  const { selectedHotel } = await requireAdminPageAccess("/admin/payments", params?.hotelId);
 
   if (!selectedHotel) {
     return (
@@ -36,20 +26,6 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
           <h1 className="text-xl font-bold text-foreground">Payments</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             No hotel is available for this account.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!canManagePayments(user, selectedHotel.id)) {
-    return (
-      <Card>
-        <CardContent>
-          <h1 className="text-xl font-bold text-foreground">Access denied</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You need HOTEL_ADMIN, MANAGER, or RECEPTIONIST access to manage
-            payments.
           </p>
         </CardContent>
       </Card>

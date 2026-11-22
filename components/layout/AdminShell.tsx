@@ -4,15 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { AuthUser, Hotel } from "@/lib/frontend/types";
-import {
-  canManageHotelSetup,
-  canManagePayments,
-  canManageReservations,
-  canManageStaff,
-  canViewAudit,
-  canViewGuests,
-  isSuperAdmin,
-} from "@/lib/frontend/permissions";
+import { canOpenAdminSection, isSuperAdmin } from "@/lib/frontend/permissions";
 import { Badge } from "@/components/ui/Badge";
 import { HotelSelector } from "@/components/layout/HotelSelector";
 import { LogoutButton } from "@/components/layout/LogoutButton";
@@ -23,11 +15,17 @@ type AdminShellProps = {
   children: React.ReactNode;
 };
 
-type NavItem = {
-  href: string;
-  label: string;
-  allowed: boolean;
-};
+const navItems = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/room-types", label: "Room Types" },
+  { href: "/admin/rooms", label: "Rooms" },
+  { href: "/admin/staff", label: "Staff" },
+  { href: "/admin/reservations", label: "Reservations" },
+  { href: "/admin/guests", label: "Guests" },
+  { href: "/admin/inquiries", label: "Inquiries" },
+  { href: "/admin/payments", label: "Payments" },
+  { href: "/admin/audit", label: "Audit" },
+];
 
 export function AdminShell({ user, hotels, children }: AdminShellProps) {
   const pathname = usePathname();
@@ -37,73 +35,17 @@ export function AdminShell({ user, hotels, children }: AdminShellProps) {
   const selectedHotelId = searchParams.get("hotelId") || hotels[0]?.id || "";
   const fullName = `${user.firstName} ${user.lastName}`;
 
-  const navItems: NavItem[] = [
-    {
-      href: "/admin",
-      label: "Dashboard",
-      allowed: true,
-    },
-    {
-      href: "/admin/room-types",
-      label: "Room Types",
-      allowed:
-        selectedHotelId.length > 0 &&
-        canManageHotelSetup(user, selectedHotelId),
-    },
-    {
-      href: "/admin/rooms",
-      label: "Rooms",
-      allowed:
-        selectedHotelId.length > 0 &&
-        canManageHotelSetup(user, selectedHotelId),
-    },
-    {
-      href: "/admin/staff",
-      label: "Staff",
-      allowed:
-        selectedHotelId.length > 0 && canManageStaff(user, selectedHotelId),
-    },
-    {
-      href: "/admin/reservations",
-      label: "Reservations",
-      allowed:
-        selectedHotelId.length > 0 &&
-        canManageReservations(user, selectedHotelId),
-    },
-    {
-      href: "/admin/guests",
-      label: "Guests",
-      allowed:
-        selectedHotelId.length > 0 && canViewGuests(user, selectedHotelId),
-    },
-    {
-      href: "/admin/inquiries",
-      label: "Inquiries",
-      allowed:
-        selectedHotelId.length > 0 && canViewGuests(user, selectedHotelId),
-    },
-    {
-      href: "/admin/payments",
-      label: "Payments",
-      allowed:
-        selectedHotelId.length > 0 && canManagePayments(user, selectedHotelId),
-    },
-    {
-      href: "/admin/audit",
-      label: "Audit",
-      allowed:
-        selectedHotelId.length > 0 && canViewAudit(user, selectedHotelId),
-    },
-  ];
-
-  const visibleNavItems = navItems.filter((item) => item.allowed);
+  const hasSelectedHotel = hotels.some((hotel) => hotel.id === selectedHotelId);
+  const visibleNavItems = navItems.filter(({ href }) =>
+    href === "/admin" || (hasSelectedHotel && canOpenAdminSection(user, href, selectedHotelId)),
+  );
 
   function withHotelId(href: string) {
     if (!selectedHotelId) {
       return href;
     }
 
-    return `${href}?hotelId=${selectedHotelId}`;
+    return `${href}?hotelId=${encodeURIComponent(selectedHotelId)}`;
   }
 
   function isActiveNavItem(href: string) {

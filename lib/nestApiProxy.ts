@@ -22,6 +22,12 @@ const FORWARDED_RESPONSE_HEADERS = [
   "cache-control",
 ];
 
+type NestProxyOptions = {
+  sessionToken?: string;
+  receiveSession?: (token: string) => Promise<void>;
+  jsonBody?: string;
+};
+
 function getNestApiBaseUrl() {
   const baseUrl = process.env.NEST_API_BASE_URL?.trim();
 
@@ -81,7 +87,7 @@ function buildResponseHeaders(response: Response) {
 export async function proxyNestRequest(
   request: Request,
   path: string,
-  options: { sessionToken?: string } = {},
+  options: NestProxyOptions = {},
 ): Promise<NextResponse | null> {
   const baseUrl = getNestApiBaseUrl();
 
@@ -90,8 +96,12 @@ export async function proxyNestRequest(
   }
 
   try {
+    const usesSession = options.sessionToken || options.receiveSession;
     const method = request.method.toUpperCase();
     const headers = buildRequestHeaders(request);
+    if (options.jsonBody !== undefined) {
+      headers.set("content-type", "application/json");
+    }
     if (options.sessionToken) {
       headers.set("authorization", `Bearer ${options.sessionToken}`);
     }
@@ -100,13 +110,23 @@ export async function proxyNestRequest(
       method,
       cache: "no-store",
       headers,
-      ...(options.sessionToken ? { redirect: "error" as const } : {}),
+      ...(usesSession ? { redirect: "error" as const } : {}),
       ...(method === "GET" || method === "HEAD"
         ? {}
         : {
-            body: await request.text(),
+            body: options.jsonBody ?? await request.text(),
           }),
     });
+
+    if (options.receiveSession && response.ok) {
+      const cookie = response.headers.getSetCookie().find((value) => value.startsWith("session="));
+      const token = cookie?.match(/^session=([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)(?:;|$)/)?.[1];
+      if (!token) {
+        throw new Error("NestJS login response is missing the session cookie");
+      }
+
+      await options.receiveSession(token);
+    }
 
     return new NextResponse(response.body, {
       status: response.status,
@@ -114,7 +134,7 @@ export async function proxyNestRequest(
     });
   } catch {
     return NextResponse.json(
-      { error: options.sessionToken ? "Session service is unavailable" : "Hotel catalog service is unavailable" },
+      { error: options.sessionToken || options.receiveSession ? "Session service is unavailable" : "Hotel catalog service is unavailable" },
       { status: 502 },
     );
   }
@@ -127,19 +147,19 @@ export function proxyNestGet(request: Request, path: string) {
 export async function proxyNestJsonRequest(
   request: Request,
   path: string,
-  options?: { sessionToken?: string },
+  options?: NestProxyOptions,
 ) {
   if (!isNestApiProxyConfigured()) {
     return null;
   }
 
+  let body: string;
   try {
-    await request.clone().json();
+    body = await request.clone().text();
+    JSON.parse(body);
   } catch {
     return null;
   }
 
-  const headers = new Headers(request.headers);
-  headers.set("content-type", "application/json");
-  return proxyNestRequest(new Request(request.clone(), { headers }), path, options);
+  return proxyNestRequest(request, path, { ...options, jsonBody: body });
 }

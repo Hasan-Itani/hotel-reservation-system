@@ -2,6 +2,7 @@ import { Body, Controller, Get, Headers, Inject, Post, Put, Req, Res } from "@ne
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { RateLimitResult, RateLimitService } from "../common/rate-limit/rate-limit.service";
+import { getClientIp, getHeaderValue } from "../common/rate-limit/client-ip";
 import { SessionsService } from "../sessions/sessions.service";
 import { PublicBookingsService } from "../public-bookings/public-bookings.service";
 import {
@@ -9,28 +10,6 @@ import {
   VERIFICATION_ALREADY_SENT_RESPONSE,
   VERIFICATION_SEND_FAILED_RESPONSE,
 } from "./guest-accounts.service";
-
-function getHeaderValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function getClientIp(request: FastifyRequest) {
-  const forwardedFor = getHeaderValue(request.headers["x-forwarded-for"]);
-  const rawIp =
-    forwardedFor?.split(",")[0]?.trim() ||
-    getHeaderValue(request.headers["x-real-ip"]) ||
-    getHeaderValue(request.headers["cf-connecting-ip"]) ||
-    getHeaderValue(request.headers["true-client-ip"]) ||
-    getHeaderValue(request.headers["x-client-ip"]) ||
-    request.ip ||
-    "unknown";
-
-  if (rawIp === "::1") {
-    return "127.0.0.1";
-  }
-
-  return rawIp.startsWith("::ffff:") ? rawIp.replace("::ffff:", "") : rawIp;
-}
 
 function getRequestOrigin(request: FastifyRequest) {
   const host = getHeaderValue(request.headers["x-forwarded-host"]) || request.headers.host;

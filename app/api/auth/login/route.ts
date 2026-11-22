@@ -2,10 +2,19 @@ import { NextResponse } from "next/server";
 import { authenticateUser } from "@/lib/auth";
 import { setSessionCookie } from "@/lib/session";
 import { getClientIp } from "@/lib/getClientIp";
+import { proxyNestJsonRequest } from "@/lib/nestApiProxy";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
 import { loginSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
+  const proxiedResponse = await proxyNestJsonRequest(request, "/auth/login", {
+    receiveSession: setSessionCookie,
+  });
+  if (proxiedResponse) {
+    proxiedResponse.headers.set("Cache-Control", "private, no-store");
+    return proxiedResponse;
+  }
+
   const ip = getClientIp(request);
 
   let body: unknown;

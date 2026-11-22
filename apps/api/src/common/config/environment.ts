@@ -8,6 +8,8 @@ const environmentSchema = z.object({
   EMAIL_FROM: z.string().trim().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.string().trim().optional(),
   JWT_SECRET: z.string().min(1).optional(),
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 });
 
 export type ApiEnvironment = z.infer<typeof environmentSchema>;

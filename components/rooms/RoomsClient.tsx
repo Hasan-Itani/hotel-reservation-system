@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -105,6 +105,8 @@ export function RoomsClient({
 }: RoomsClientProps) {
   const router = useRouter();
   const formRef = useRef<HTMLDivElement | null>(null);
+  const deleteConfirmationRef = useRef<HTMLDivElement | null>(null);
+  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const defaultRoomTypeId = roomTypes[0]?.id || "";
 
@@ -114,9 +116,22 @@ export function RoomsClient({
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [error, setError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [pendingDeleteRoom, setPendingDeleteRoom] = useState<Room | null>(null);
+
+  useEffect(() => {
+    if (pendingDeleteRoom) {
+      deleteConfirmationRef.current?.focus({ preventScroll: true });
+      deleteConfirmationRef.current?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+        block: "center",
+      });
+    }
+  }, [pendingDeleteRoom]);
 
   const isEditing = !!form.id;
 
@@ -163,6 +178,7 @@ export function RoomsClient({
 
   function openCreateForm() {
     setError("");
+    setDeleteSuccess("");
     setForm(createEmptyForm(defaultRoomTypeId));
     setIsFormOpen(true);
     scrollToForm();
@@ -170,6 +186,7 @@ export function RoomsClient({
 
   function openEditForm(room: Room) {
     setError("");
+    setDeleteSuccess("");
     setForm(roomToForm(room));
     setIsFormOpen(true);
     scrollToForm();
@@ -290,6 +307,7 @@ export function RoomsClient({
 
       setRooms((current) => current.filter((item) => item.id !== room.id));
       setPendingDeleteRoom(null);
+      setDeleteSuccess(`Room ${room.roomNumber} was deleted.`);
       router.refresh();
     } catch (caughtError: unknown) {
       if (caughtError instanceof FrontendApiError) {
@@ -327,45 +345,67 @@ export function RoomsClient({
       ) : null}
 
       {error ? (
-        <div className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
+        <div role="alert" className="rounded-xl border border-danger-soft bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
           {error}
         </div>
       ) : null}
 
-      {pendingDeleteRoom ? (
-        <Card className="border-danger-soft bg-danger-soft/50">
-          <CardContent>
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <p className="text-sm font-bold text-foreground">
-                  Delete room {pendingDeleteRoom.roomNumber}?
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  This will fail if the room is not AVAILABLE or has reservation
-                  history.
-                </p>
-              </div>
+      <div
+        role="status"
+        className={deleteSuccess
+          ? "rounded-xl border border-success-soft bg-success-soft px-4 py-3 text-sm font-medium text-success"
+          : "sr-only"}
+      >
+        {deleteSuccess}
+      </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setPendingDeleteRoom(null)}
-                >
-                  Keep room
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => deleteRoom(pendingDeleteRoom)}
-                  disabled={deletingId === pendingDeleteRoom.id}
-                >
-                  {deletingId === pendingDeleteRoom.id
-                    ? "Deleting..."
-                    : "Delete room"}
-                </Button>
+      {pendingDeleteRoom ? (
+        <div
+          ref={deleteConfirmationRef}
+          tabIndex={-1}
+          role="group"
+          aria-labelledby="room-delete-title"
+          aria-describedby="room-delete-description"
+        >
+          <Card className="border-danger-soft bg-danger-soft/50">
+            <CardContent>
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <div>
+                  <p id="room-delete-title" className="text-sm font-bold text-foreground">
+                    Delete room {pendingDeleteRoom.roomNumber}?
+                  </p>
+                  <p id="room-delete-description" className="mt-1 text-sm text-muted-foreground">
+                    This will fail if the room is not AVAILABLE or has reservation
+                    history.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    disabled={Boolean(deletingId)}
+                    onClick={() => {
+                      setPendingDeleteRoom(null);
+                      setError("");
+                      deleteTriggerRef.current?.focus();
+                    }}
+                  >
+                    Keep room
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => deleteRoom(pendingDeleteRoom)}
+                    disabled={deletingId === pendingDeleteRoom.id}
+                  >
+                    {deletingId === pendingDeleteRoom.id
+                      ? "Deleting..."
+                      : "Delete room"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       ) : null}
 
       {isFormOpen ? (
@@ -612,8 +652,13 @@ export function RoomsClient({
 
                             <Button
                               variant="danger"
-                              onClick={() => setPendingDeleteRoom(room)}
-                              disabled={deletingId === room.id || !canDelete}
+                              onClick={(event) => {
+                                deleteTriggerRef.current = event.currentTarget;
+                                setError("");
+                                setDeleteSuccess("");
+                                setPendingDeleteRoom(room);
+                              }}
+                              disabled={Boolean(deletingId) || !canDelete}
                               title={
                                 canDelete
                                   ? "Delete room"

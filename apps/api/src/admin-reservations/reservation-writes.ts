@@ -1,6 +1,6 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { createAuditLog } from "../common/audit-log";
-import { canAccessHotel, hasGlobalRole, hasHotelRole, type AuthUser } from "../common/permissions";
+import type { AuthUser } from "../common/permissions";
 import { BLOCKING_RESERVATION_STATUSES, generateReservationNumber } from "../booking-domain/hotel-inventory";
 import { validateReservationRoomAvailability } from "../booking-domain/reservation-availability";
 import { lockHotelReservationInventory } from "../booking-domain/reservation-concurrency";
@@ -8,41 +8,12 @@ import { calculateReservationPricing, getRoomTypeNightlyPrice } from "../booking
 import { validateReservationActionTransition } from "../booking-domain/reservation-status";
 import { getReservationSelect } from "./reservation-reads";
 import { reservationCreateSchema, reservationUpdateSchema } from "./reservation-write-schemas";
-
-export type ReservationWriteResult = { status: number; body: object };
-
-function writeResponse(body: object, { status = 200 }: { status?: number } = {}): ReservationWriteResult {
-  return { body, status };
-}
+import { requireReservationWriteAccess, writeResponse, type ReservationWriteResult } from "./reservation-write-access";
 
 class ReservationRejected extends Error {
   constructor(readonly result: ReservationWriteResult) {
     super("Reservation rejected");
   }
-}
-
-function requireReservationWriteAccess(user: AuthUser | null, hotelId: string) {
-  if (!user) {
-    return { ok: false as const, result: writeResponse({ error: "Unauthorized" }, { status: 401 }) };
-  }
-  if (!canAccessHotel(user, hotelId)) {
-    return { ok: false as const, result: writeResponse({ error: "You do not have access to this hotel" }, { status: 403 }) };
-  }
-  const canManage =
-    hasGlobalRole(user, "SUPER_ADMIN") ||
-    hasHotelRole(user, hotelId, "HOTEL_ADMIN") ||
-    hasHotelRole(user, hotelId, "MANAGER") ||
-    hasHotelRole(user, hotelId, "RECEPTIONIST");
-  if (!canManage) {
-    return {
-      ok: false as const,
-      result: writeResponse(
-        { error: "Requires HOTEL_ADMIN, MANAGER, or RECEPTIONIST role for this hotel" },
-        { status: 403 },
-      ),
-    };
-  }
-  return { ok: true as const, user };
 }
 
 export async function createAdminReservation(

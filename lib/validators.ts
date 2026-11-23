@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { paymentStatusUpdateSchema } from "../apps/api/src/admin-reservations/payment-write-schema";
+export { paymentStatusUpdateSchema };
 import { reservationCreateSchema, reservationUpdateSchema } from "../apps/api/src/admin-reservations/reservation-write-schemas";
 export { reservationCreateSchema, reservationUpdateSchema, reservationStatusActionSchema, reservationRoomAssignmentSchema } from "../apps/api/src/admin-reservations/reservation-write-schemas";
 import { reservationListQuerySchema } from "../apps/api/src/admin-reservations/reservation-list-query";
@@ -265,17 +267,6 @@ export type PublicBookingAccessQueryInput = z.infer<
 export type PublicBookingPaymentInput = z.infer<
   typeof publicBookingPaymentSchema
 >;
-
-export const paymentStatusUpdateSchema = z
-  .object({
-    action: z.enum([
-      "MARK_PAID",
-      "MARK_FAILED",
-      "MARK_REFUNDED",
-      "MARK_PARTIALLY_REFUNDED",
-    ]),
-  })
-  .strict();
 
 export type MockPaymentCreateInput = z.infer<typeof mockPaymentCreateSchema>;
 export type PaymentStatusUpdateInput = z.infer<

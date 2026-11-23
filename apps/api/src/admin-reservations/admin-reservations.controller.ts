@@ -5,7 +5,9 @@ import { PrismaService } from "../database/prisma.service";
 import { SessionsService } from "../sessions/sessions.service";
 import { listAdminReservations, listAdminReservationPayments, readAdminReservation, readAdminReservationPayment } from "./reservation-reads";
 
-import { createAdminReservation, updateAdminReservation, type ReservationWriteResult } from "./reservation-writes";
+import { createAdminMockPayment, updateAdminPaymentStatus } from "./payment-writes";
+import { createAdminReservation, updateAdminReservation } from "./reservation-writes";
+import type { ReservationWriteResult } from "./reservation-write-access";
 
 @Controller("admin/hotels/:hotelId/reservations")
 export class AdminReservationsController {
@@ -85,6 +87,33 @@ export class AdminReservationsController {
   ) {
     return this.write(authorization, reply, (user) =>
       updateAdminReservation(this.prisma, user, hotelId, reservationId, async () => body),
+    );
+  }
+
+  @Post(":reservationId/payments")
+  createPayment(
+    @Param("hotelId") hotelId: string,
+    @Param("reservationId") reservationId: string,
+    @Headers("authorization") authorization: string | undefined,
+    @Body() body: unknown,
+    @Res() reply: FastifyReply,
+  ) {
+    return this.write(authorization, reply, (user) =>
+      createAdminMockPayment(this.prisma, user, hotelId, reservationId, async () => body),
+    );
+  }
+
+  @Patch(":reservationId/payments/:paymentId")
+  updatePayment(
+    @Param("hotelId") hotelId: string,
+    @Param("reservationId") reservationId: string,
+    @Param("paymentId") paymentId: string,
+    @Headers("authorization") authorization: string | undefined,
+    @Body() body: unknown,
+    @Res() reply: FastifyReply,
+  ) {
+    return this.write(authorization, reply, (user) =>
+      updateAdminPaymentStatus(this.prisma, user, hotelId, reservationId, paymentId, async () => body),
     );
   }
 

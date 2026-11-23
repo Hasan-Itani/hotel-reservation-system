@@ -1,7 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import type { ReservationWriteResult } from "@/apps/api/src/admin-reservations/reservation-writes";
+import type { ReservationWriteResult } from "@/apps/api/src/admin-reservations/reservation-write-access";
 import { getCurrentAuthUser } from "@/lib/auth";
 import { isNestApiProxyConfigured, proxyNestJsonRequest, proxyNestRequest } from "@/lib/nestApiProxy";
 import { getSessionToken } from "@/lib/session";

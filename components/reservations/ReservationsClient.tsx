@@ -144,6 +144,24 @@ function getAvailableRoomsForReservationRoom(
   );
 }
 
+function revealCheckInForm(form: HTMLElement | null, panel: HTMLDivElement | null) {
+  if (!form) return;
+
+  const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "instant"
+    : "smooth";
+  form.focus({ preventScroll: true });
+
+  if (panel && window.matchMedia("(min-width: 80rem)").matches) {
+    panel.scrollBy({
+      top: form.getBoundingClientRect().top - panel.getBoundingClientRect().top - 16,
+      behavior,
+    });
+  } else {
+    form.scrollIntoView({ block: "start", behavior });
+  }
+}
+
 export function ReservationsClient({
   hotel,
   initialReservations,
@@ -154,6 +172,7 @@ export function ReservationsClient({
   const searchParams = useSearchParams();
   const detailsRef = useRef<HTMLDivElement | null>(null);
   const detailsContentRef = useRef<HTMLDivElement | null>(null);
+  const checkInFormRef = useRef<HTMLElement | null>(null);
 
   const detailsRequest = useRef<AbortController | null>(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -166,6 +185,12 @@ export function ReservationsClient({
     useState<PendingReservationAction | null>(null);
 
   useEffect(() => () => detailsRequest.current?.abort(), []);
+
+  useEffect(() => {
+    if (checkInReservationId) {
+      revealCheckInForm(checkInFormRef.current, detailsContentRef.current);
+    }
+  }, [checkInReservationId]);
 
   const selectedReservation = details?.state === "ready" ? details.reservation : null;
 
@@ -275,6 +300,11 @@ export function ReservationsClient({
   }
 
   function startCheckIn(reservation: Reservation) {
+    if (checkInReservationId === reservation.id) {
+      revealCheckInForm(checkInFormRef.current, detailsContentRef.current);
+      return;
+    }
+
     const nextAssignments: RoomAssignments = {};
 
     for (const reservationRoom of reservation.reservationRooms) {
@@ -870,12 +900,17 @@ export function ReservationsClient({
                   </div>
 
                   {checkInReservationId === selectedReservation.id ? (
-                    <div className="rounded-xl border border-border bg-surface-muted p-4">
+                    <section
+                      ref={checkInFormRef}
+                      tabIndex={-1}
+                      aria-labelledby="check-in-room-assignments"
+                      className="scroll-mt-24 rounded-xl border border-border bg-surface-muted p-4"
+                    >
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-bold text-foreground">
+                          <h3 id="check-in-room-assignments" className="text-sm font-bold text-foreground">
                             Room Assignments for Check-in
-                          </p>
+                          </h3>
                           <p className="mt-1 text-xs text-muted-foreground">
                             Every reservation room must get an AVAILABLE
                             physical room of the same room type.
@@ -965,7 +1000,7 @@ export function ReservationsClient({
                             : "Confirm Check-in"}
                         </Button>
                       </div>
-                    </div>
+                    </section>
                   ) : null}
                 </div>
               )}

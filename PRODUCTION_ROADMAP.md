@@ -110,6 +110,7 @@ Legend:
 - [x] Bring room deletion confirmation into view on every click and show feedback when a room is deleted.
 - [x] Show field-level validation and clearer API errors in admin and guest forms.
 - [x] Use a compact reservation list and load full reservation details only when selected, without scrolling or shifting the desktop page.
+- [x] Scroll to room assignments when staff opens check-in.
 
 - [ ] Add admin overview stats:
   - Today's check-ins

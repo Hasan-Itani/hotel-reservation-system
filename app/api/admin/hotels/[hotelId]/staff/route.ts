@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelRole } from "@/lib/guards";
 import { hotelStaffCreateSchema } from "@/lib/validators";
+import { getHotelById, getStaffAssignments, listAdminStaff, mapStaff } from "@/apps/api/src/admin-people/people-reads";
+import { proxyAdminPeopleRead } from "@/lib/adminPeopleReadProxy";
+import { getCurrentAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,116 +17,6 @@ const HOTEL_STAFF_ROLE_NAMES = [
   "MANAGER",
   "RECEPTIONIST",
 ] as const;
-
-async function getHotelById(hotelId: string) {
-  return prisma.hotel.findFirst({
-    where: {
-      id: hotelId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
-}
-
-async function getStaffAssignments(hotelId: string, userId?: string) {
-  return prisma.userHotelRole.findMany({
-    where: {
-      hotelId,
-      ...(userId ? { userId } : {}),
-      User: {
-        deletedAt: null,
-      },
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      Role: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-        },
-      },
-      User: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
-          status: true,
-          createdAt: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  });
-}
-
-function mapStaff(assignments: Awaited<ReturnType<typeof getStaffAssignments>>) {
-  const staffMap = new Map<
-    string,
-    {
-      id: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone: string | null;
-      status: string;
-      createdAt: Date;
-      assignedAt: Date;
-      roles: Array<{
-        id: string;
-        name: string;
-        description: string | null;
-      }>;
-    }
-  >();
-
-  for (const assignment of assignments) {
-    const existing = staffMap.get(assignment.User.id);
-
-    if (!existing) {
-      staffMap.set(assignment.User.id, {
-        id: assignment.User.id,
-        firstName: assignment.User.firstName,
-        lastName: assignment.User.lastName,
-        email: assignment.User.email,
-        phone: assignment.User.phone,
-        status: assignment.User.status,
-        createdAt: assignment.User.createdAt,
-        assignedAt: assignment.createdAt,
-        roles: [
-          {
-            id: assignment.Role.id,
-            name: assignment.Role.name,
-            description: assignment.Role.description,
-          },
-        ],
-      });
-
-      continue;
-    }
-
-    existing.roles.push({
-      id: assignment.Role.id,
-      name: assignment.Role.name,
-      description: assignment.Role.description,
-    });
-  }
-
-  return Array.from(staffMap.values()).sort((a, b) => {
-    const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-    const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-
-    return nameA.localeCompare(nameB);
-  });
-}
 
 function hasOnlyHotelStaffRoles(roleNames: string[]) {
   return roleNames.every((roleName) =>
@@ -138,25 +31,13 @@ export async function GET(
   { params }: { params: Promise<{ hotelId: string }> },
 ) {
   const { hotelId } = await params;
+  const proxied = await proxyAdminPeopleRead(request, hotelId, "staff");
+  if (proxied) return proxied;
 
-  const auth = await requireHotelRole(hotelId, "HOTEL_ADMIN");
-
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  const hotel = await getHotelById(hotelId);
-
-  if (!hotel) {
-    return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
-  }
-
-  const assignments = await getStaffAssignments(hotelId);
-
-  return NextResponse.json({
-    hotelId: hotel.id,
-    hotelName: hotel.name,
-    staff: mapStaff(assignments),
+  const result = await listAdminStaff(prisma, await getCurrentAuthUser(), hotelId);
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store" },
   });
 }
 
@@ -204,7 +85,7 @@ export async function POST(
     );
   }
 
-  const hotel = await getHotelById(hotelId);
+  const hotel = await getHotelById(prisma, hotelId);
 
   if (!hotel) {
     return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
@@ -363,7 +244,7 @@ export async function POST(
       userId = createdUser.id;
     }
 
-    const assignments = await getStaffAssignments(hotelId, userId);
+    const assignments = await getStaffAssignments(prisma, hotelId, userId);
     const [staffMember] = mapStaff(assignments);
 
     await createAuditLog({

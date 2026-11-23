@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AdminRoomsModule } from "./admin-rooms/admin-rooms.module";
+import { AdminPeopleModule } from "./admin-people/admin-people.module";
 import { AdminReservationsModule } from "./admin-reservations/admin-reservations.module";
 import { validateEnvironment } from "./common/config/environment";
 import { DatabaseModule } from "./database/database.module";
@@ -28,6 +29,7 @@ import { SessionsModule } from "./sessions/sessions.module";
     PublicHotelsModule,
     PublicBookingsModule,
     AdminRoomsModule,
+    AdminPeopleModule,
     AdminReservationsModule,
     GuestAccountsModule,
     SessionsModule,

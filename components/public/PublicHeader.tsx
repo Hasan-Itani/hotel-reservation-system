@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { getServerAuthUser } from "@/lib/frontend/auth-server";
+import { ServerApiError } from "@/lib/frontend/api-server";
 
 export async function PublicHeader() {
-  const user = await getServerAuthUser();
+  const user = await getServerAuthUser().catch((error: unknown) => {
+    if (error instanceof ServerApiError && [502, 503, 504].includes(error.status)) {
+      return undefined;
+    }
+    throw error;
+  });
 
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-white/90 backdrop-blur-xl">
@@ -31,7 +37,7 @@ export async function PublicHeader() {
             Hotels
           </Link>
 
-          {user ? (
+          {user === undefined ? null : user ? (
             <Link
               href="/guest/account"
               className="inline-flex h-10 items-center justify-center rounded-full border border-luxury-stone bg-white px-3 text-luxury-ink shadow-sm transition hover:border-luxury-gold hover:bg-luxury-cream sm:px-4"

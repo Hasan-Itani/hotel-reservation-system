@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     signal: AbortSignal.timeout(2000),
   });
   const cacheControl = "private, no-store";
-  if (response?.ok) {
+  if (response.ok) {
     response.headers.set("Cache-Control", cacheControl);
     return response;
   }

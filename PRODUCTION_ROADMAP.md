@@ -247,13 +247,13 @@ Legend:
   - [x] Booking detail reads proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Verify local route coverage: all 48 methods across 34 Next.js route files have registered NestJS counterparts. Public reads and signed-out or empty requests returned matching HTTP statuses and bodies without changing records.
   - [ ] Verify deployed proxy coverage and successful authenticated reads and writes in staging. Local smoke checks do not cover these paths.
-- [ ] Remove migrated Next.js route handlers only after API contract and production verification.
+- [x] Remove the Next.js business-logic fallbacks. Keep same-origin API route handlers as thin NestJS proxies and retain browser session-cookie handling.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
 
 ## Next Recommended Work
 
 1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
-2. Verify deployed proxy coverage and authenticated guest and admin flows in staging before removing any Next.js fallbacks.
+2. Recheck authenticated guest and admin flows locally after the proxy-only cutover. Verify the same flows on a hosted demo when deployment resumes.
 3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes

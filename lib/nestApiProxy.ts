@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getNestProxyBody } from "./nestProxyBody";
+import { getSessionToken } from "./session";
 
 const FORWARDED_REQUEST_HEADERS = [
   "content-type",
@@ -27,8 +28,8 @@ type NestProxyOptions = {
   sessionToken?: string;
   receiveSession?: (token: string) => Promise<void>;
   jsonBody?: string;
+  json?: boolean;
   signal?: AbortSignal;
-  rejectRedirects?: boolean;
   unavailableError?: string;
 };
 
@@ -36,10 +37,6 @@ function getNestApiBaseUrl() {
   const baseUrl = process.env.NEST_API_BASE_URL?.trim();
 
   return baseUrl ? baseUrl.replace(/\/$/, "") : null;
-}
-
-export function isNestApiProxyConfigured() {
-  return getNestApiBaseUrl() !== null;
 }
 
 function buildRequestHeaders(request: Request) {
@@ -75,7 +72,7 @@ function buildRequestHeaders(request: Request) {
 }
 
 function buildResponseHeaders(response: Response) {
-  const headers = new Headers();
+  const headers = new Headers({ "Cache-Control": "private, no-store" });
 
   for (const headerName of FORWARDED_RESPONSE_HEADERS) {
     const value = response.headers.get(headerName);
@@ -92,18 +89,32 @@ export async function proxyNestRequest(
   request: Request,
   path: string,
   options: NestProxyOptions = {},
-): Promise<NextResponse | null> {
+): Promise<NextResponse> {
   const baseUrl = getNestApiBaseUrl();
+  const error = options.unavailableError ?? "Hotel API is unavailable. Please try again.";
+  const errorHeaders = { "Cache-Control": "private, no-store" };
 
   if (!baseUrl) {
-    return null;
+    return NextResponse.json({ error }, { status: 503, headers: errorHeaders });
   }
 
-  const usesSession = options.sessionToken || options.receiveSession;
+  if (path.split("/").some((segment) => segment === "." || segment === "..")) {
+    return NextResponse.json({ error: "Invalid route parameter" }, { status: 400, headers: errorHeaders });
+  }
+
+  let jsonBody = options.jsonBody;
+  if (options.json) {
+    try {
+      jsonBody = await request.text();
+      JSON.parse(jsonBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers: errorHeaders });
+    }
+  }
   try {
     const method = request.method.toUpperCase();
     const headers = buildRequestHeaders(request);
-    const body = await getNestProxyBody(request, method, headers, options.jsonBody);
+    const body = await getNestProxyBody(request, method, headers, jsonBody);
     if (options.sessionToken) {
       headers.set("authorization", `Bearer ${options.sessionToken}`);
     }
@@ -112,8 +123,8 @@ export async function proxyNestRequest(
       method,
       cache: "no-store",
       headers,
-      signal: options.signal,
-      ...(usesSession || options.rejectRedirects ? { redirect: "error" as const } : {}),
+      signal: options.signal ?? AbortSignal.timeout(30_000),
+      redirect: "error",
       body,
     });
 
@@ -133,32 +144,17 @@ export async function proxyNestRequest(
     });
   } catch {
     return NextResponse.json(
-      { error: options.unavailableError ?? (usesSession ? "Session service is unavailable" : "Hotel catalog service is unavailable") },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
+      { error },
+      { status: 502, headers: errorHeaders },
     );
   }
 }
 
-export function proxyNestGet(request: Request, path: string) {
-  return proxyNestRequest(request, path);
-}
-
-export async function proxyNestJsonRequest(
+export async function proxyNestSessionRequest(
   request: Request,
   path: string,
   options?: NestProxyOptions,
 ) {
-  if (!isNestApiProxyConfigured()) {
-    return null;
-  }
-
-  let body: string;
-  try {
-    body = await request.clone().text();
-    JSON.parse(body);
-  } catch {
-    return null;
-  }
-
-  return proxyNestRequest(request, path, { ...options, jsonBody: body });
+  const sessionToken = await getSessionToken();
+  return proxyNestRequest(request, path, { ...options, sessionToken: sessionToken ?? undefined });
 }

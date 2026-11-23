@@ -133,7 +133,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 Changing `JWT_SECRET` invalidates existing login sessions.
 
-When enabling the NestJS proxy, deploy NestJS first with the same `JWT_SECRET` and database as Next.js. Use a trusted HTTPS NestJS URL in production. NestJS validates credentials and signs the session token. Next.js sets the browser cookie and forwards its token to NestJS for account validation.
+NestJS owns database access, validates credentials, and signs the session token. Next.js sets the browser cookie and forwards its token to NestJS for account validation. If you run the apps with separate environments, only NestJS needs `DATABASE_URL` and `JWT_SECRET` at runtime.
 
 Sign-out clears the session cookie from the current browser, including when NestJS is unavailable. Password reset invalidates existing sessions across browsers.
 
@@ -165,13 +165,13 @@ API_CORS_ORIGINS="http://localhost:3000"
 
 The NestJS workspace reads the same root `.env` file. `API_PORT` defaults to `4000` and `API_CORS_ORIGINS` defaults to the local Next.js origin.
 
-Optional for the temporary Next.js-to-NestJS catalog proxy:
+Required for the Next.js API proxy:
 
 ```env
 NEST_API_BASE_URL="http://localhost:4000/api/v1"
 ```
 
-Set `NEST_API_BASE_URL` in the Next.js runtime environment to the NestJS API's private or public base URL, including `/api/v1`. Do not expose it as a `NEXT_PUBLIC_` variable. Until it is configured, the catalog GET routes keep their existing Next.js implementation as a safe transition fallback.
+Set `NEST_API_BASE_URL` in the Next.js runtime environment to the NestJS API base URL, including `/api/v1`. Do not expose it as a `NEXT_PUBLIC_` variable. Both servers must be running for the API to work. Without a configured URL or reachable NestJS server, the proxy reports that the API is unavailable; Next.js does not run a local backend fallback.
 
 Email note:
 

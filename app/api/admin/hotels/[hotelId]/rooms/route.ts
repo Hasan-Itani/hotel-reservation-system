@@ -1,9 +1,4 @@
-import { NextResponse } from "next/server";
-import { listRooms } from "@/apps/api/src/admin-rooms/room-reads";
-import { createRoom } from "@/apps/api/src/admin-rooms/room-writes";
-import { handleAdminInventoryWrite, proxyAdminRoomRead } from "@/lib/adminRoomReadProxy";
-import { requireHotelAccess } from "@/lib/guards";
-import { prisma } from "@/lib/prisma";
+import { proxyNestSessionRequest } from "@/lib/nestApiProxy";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ hotelId: string }> },
 ) {
   const { hotelId } = await params;
-  const proxied = await proxyAdminRoomRead(request, hotelId, "rooms");
-  if (proxied) {
-    return proxied;
-  }
-
-  const auth = await requireHotelAccess(hotelId);
-
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  return NextResponse.json(await listRooms(prisma, hotelId));
+  return proxyNestSessionRequest(request, `/admin/hotels/${encodeURIComponent(hotelId)}/rooms`);
 }
 
 export async function POST(
@@ -31,7 +15,5 @@ export async function POST(
   { params }: { params: Promise<{ hotelId: string }> },
 ) {
   const { hotelId } = await params;
-  return handleAdminInventoryWrite(request, hotelId, ["rooms"], (user) =>
-    createRoom(prisma, user, hotelId, () => request.json()),
-  );
+  return proxyNestSessionRequest(request, `/admin/hotels/${encodeURIComponent(hotelId)}/rooms`, { json: true });
 }

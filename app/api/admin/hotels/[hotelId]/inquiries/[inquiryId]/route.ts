@@ -1,6 +1,4 @@
-import { updateAdminInquiry } from "@/apps/api/src/inquiries/inquiry-actions";
-import { handleAdminActivity } from "@/lib/adminActivityProxy";
-import { prisma } from "@/lib/prisma";
+import { proxyNestSessionRequest } from "@/lib/nestApiProxy";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +7,5 @@ export async function PATCH(
   { params }: { params: Promise<{ hotelId: string; inquiryId: string }> },
 ) {
   const { hotelId, inquiryId } = await params;
-  return handleAdminActivity(request, hotelId, ["inquiries", inquiryId], (user) =>
-    updateAdminInquiry(prisma, user, hotelId, inquiryId, () => request.json()),
-  );
+  return proxyNestSessionRequest(request, `/admin/hotels/${encodeURIComponent(hotelId)}/inquiries/${encodeURIComponent(inquiryId)}`, { json: true });
 }

@@ -1,39 +1,13 @@
-import { NextResponse } from "next/server";
-import { getRoomById } from "@/apps/api/src/admin-rooms/room-reads";
-import { updateRoom, deleteRoom } from "@/apps/api/src/admin-rooms/room-writes";
-import { handleAdminInventoryWrite, proxyAdminRoomRead } from "@/lib/adminRoomReadProxy";
-import { requireHotelAccess } from "@/lib/guards";
-import { prisma } from "@/lib/prisma";
+import { proxyNestSessionRequest } from "@/lib/nestApiProxy";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  {
-    params,
-  }: {
-    params: Promise<{ hotelId: string; roomId: string }>;
-  },
+  { params }: { params: Promise<{ hotelId: string; roomId: string }> },
 ) {
   const { hotelId, roomId } = await params;
-  const proxied = await proxyAdminRoomRead(request, hotelId, "rooms", roomId);
-  if (proxied) {
-    return proxied;
-  }
-
-  const auth = await requireHotelAccess(hotelId);
-
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  const room = await getRoomById(prisma, hotelId, roomId);
-
-  if (!room) {
-    return NextResponse.json({ error: "Room not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ room });
+  return proxyNestSessionRequest(request, `/admin/hotels/${encodeURIComponent(hotelId)}/rooms/${encodeURIComponent(roomId)}`);
 }
 
 export async function PATCH(
@@ -41,9 +15,7 @@ export async function PATCH(
   { params }: { params: Promise<{ hotelId: string; roomId: string }> },
 ) {
   const { hotelId, roomId } = await params;
-  return handleAdminInventoryWrite(request, hotelId, ["rooms", roomId], (user) =>
-    updateRoom(prisma, user, hotelId, roomId, () => request.json()),
-  );
+  return proxyNestSessionRequest(request, `/admin/hotels/${encodeURIComponent(hotelId)}/rooms/${encodeURIComponent(roomId)}`, { json: true });
 }
 
 export async function DELETE(
@@ -51,7 +23,5 @@ export async function DELETE(
   { params }: { params: Promise<{ hotelId: string; roomId: string }> },
 ) {
   const { hotelId, roomId } = await params;
-  return handleAdminInventoryWrite(request, hotelId, ["rooms", roomId], (user) =>
-    deleteRoom(prisma, user, hotelId, roomId),
-  );
+  return proxyNestSessionRequest(request, `/admin/hotels/${encodeURIComponent(hotelId)}/rooms/${encodeURIComponent(roomId)}`);
 }

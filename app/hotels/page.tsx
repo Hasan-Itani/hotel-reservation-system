@@ -37,7 +37,7 @@ async function getPublicHotels() {
   });
 
   if (!response.ok) {
-    return [];
+    return null;
   }
 
   const data = (await response.json()) as PublicHotelsResponse;
@@ -56,7 +56,8 @@ function formatPrice(price: number | null, currency: string) {
 }
 
 export default async function HotelsPage() {
-  const hotels = await getPublicHotels();
+  const catalog = await getPublicHotels();
+  const hotels = catalog ?? [];
 
   return (
     <div className="min-h-screen bg-luxury-cream">
@@ -100,13 +101,13 @@ export default async function HotelsPage() {
 
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               <div className="rounded-3xl border border-white/10 bg-white/10 p-5 text-white backdrop-blur">
-                <p className="text-3xl font-bold">{hotels.length}</p>
+                <p className="text-3xl font-bold">{catalog ? hotels.length : "—"}</p>
                 <p className="mt-1 text-sm text-white/60">available hotels</p>
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-white/10 p-5 text-white backdrop-blur">
                 <p className="text-3xl font-bold">
-                  {hotels.reduce((sum, hotel) => sum + hotel.roomTypeCount, 0)}
+                  {catalog ? hotels.reduce((sum, hotel) => sum + hotel.roomTypeCount, 0) : "—"}
                 </p>
                 <p className="mt-1 text-sm text-white/60">room categories</p>
               </div>
@@ -137,7 +138,7 @@ export default async function HotelsPage() {
             </div>
 
             <Badge variant="luxury">
-              {hotels.length} hotel{hotels.length === 1 ? "" : "s"}
+              {catalog ? `${hotels.length} hotel${hotels.length === 1 ? "" : "s"}` : "Unavailable"}
             </Badge>
           </div>
 
@@ -146,10 +147,10 @@ export default async function HotelsPage() {
               <Card>
                 <CardContent>
                   <p className="text-sm font-semibold text-foreground">
-                    No hotels available.
+                    {catalog ? "No hotels available." : "The hotel catalog is temporarily unavailable."}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Add active hotels and room types from the admin panel first.
+                    {catalog ? "Add active hotels and room types from the admin panel first." : "Please try again in a moment."}
                   </p>
                 </CardContent>
               </Card>

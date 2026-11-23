@@ -153,6 +153,7 @@ export function ReservationsClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const detailsRef = useRef<HTMLDivElement | null>(null);
+  const detailsContentRef = useRef<HTMLDivElement | null>(null);
 
   const detailsRequest = useRef<AbortController | null>(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -170,13 +171,20 @@ export function ReservationsClient({
 
   async function selectReservation(reservationId: string) {
     const panel = detailsRef.current;
-    panel?.focus({ preventScroll: true });
-    panel?.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
-      block: "start",
-    });
+    if (panel && !window.matchMedia("(min-width: 80rem)").matches) {
+      panel.focus({ preventScroll: true });
+      const bounds = panel.getBoundingClientRect();
+      if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) {
+        panel.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+          block: "start",
+        });
+      }
+    }
 
     if (details?.id === reservationId && details.state !== "error") return;
+
+    if (detailsContentRef.current) detailsContentRef.current.scrollTop = 0;
 
     detailsRequest.current?.abort();
     const request = new AbortController();
@@ -544,14 +552,17 @@ export function ReservationsClient({
           tabIndex={-1}
           className="min-w-0 scroll-mt-24 xl:col-start-1 xl:row-start-1"
         >
-          <Card className="min-w-0">
-            <CardHeader>
+          <Card className="min-w-0 xl:flex xl:h-[65vh] xl:flex-col">
+            <CardHeader className="shrink-0">
               <h2 id="reservation-details-heading" className="text-base font-bold text-foreground">
                 Reservation Details
               </h2>
             </CardHeader>
 
-            <CardContent>
+            <div
+              ref={detailsContentRef}
+              className="min-h-0 p-5 xl:flex-1 xl:overflow-y-auto"
+            >
               {details?.state === "loading" ? (
                 <p role="status" className="text-sm text-muted-foreground">
                   Loading reservation details…
@@ -958,7 +969,7 @@ export function ReservationsClient({
                   ) : null}
                 </div>
               )}
-            </CardContent>
+            </div>
           </Card>
         </div>
       </div>

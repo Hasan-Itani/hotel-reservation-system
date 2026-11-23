@@ -98,6 +98,18 @@ function formatStatus(status: RoomStatus) {
   return status.replaceAll("_", " ");
 }
 
+function revealDeleteConfirmation(panel: HTMLDivElement | null) {
+  if (!panel) return;
+
+  panel.focus({ preventScroll: true });
+  panel.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "instant"
+      : "smooth",
+    block: "center",
+  });
+}
+
 export function RoomsClient({
   hotel,
   initialRooms,
@@ -123,13 +135,7 @@ export function RoomsClient({
 
   useEffect(() => {
     if (pendingDeleteRoom) {
-      deleteConfirmationRef.current?.focus({ preventScroll: true });
-      deleteConfirmationRef.current?.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-        block: "center",
-      });
+      revealDeleteConfirmation(deleteConfirmationRef.current);
     }
   }, [pendingDeleteRoom]);
 
@@ -656,7 +662,11 @@ export function RoomsClient({
                                 deleteTriggerRef.current = event.currentTarget;
                                 setError("");
                                 setDeleteSuccess("");
-                                setPendingDeleteRoom(room);
+                                if (pendingDeleteRoom === room) {
+                                  revealDeleteConfirmation(deleteConfirmationRef.current);
+                                } else {
+                                  setPendingDeleteRoom(room);
+                                }
                               }}
                               disabled={Boolean(deletingId) || !canDelete}
                               title={

@@ -107,7 +107,7 @@ Legend:
 
 ## Phase 6: Admin Dashboard Upgrade
 
-- [x] Bring room deletion confirmation into view and show feedback when a room is deleted.
+- [x] Bring room deletion confirmation into view on every click and show feedback when a room is deleted.
 
 - [ ] Add admin overview stats:
   - Today's check-ins

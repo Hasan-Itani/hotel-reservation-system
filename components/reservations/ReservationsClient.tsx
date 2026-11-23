@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { clientFetchJson, FrontendApiError } from "@/lib/frontend/api-client";
 import { formatMoney } from "@/lib/frontend/format";
 import type {
+  AdminReservationSummary,
   Hotel,
   Reservation,
   ReservationResponse,
@@ -29,12 +30,17 @@ type ReservationFilters = {
 
 type ReservationsClientProps = {
   hotel: Hotel;
-  initialReservations: Reservation[];
+  initialReservations: AdminReservationSummary[];
   rooms: Room[];
   initialFilters: ReservationFilters;
 };
 
 type RoomAssignments = Record<string, string>;
+
+type ReservationDetailsState =
+  | { id: string; state: "loading" }
+  | { id: string; state: "ready"; reservation: Reservation }
+  | { id: string; state: "error"; message: string };
 
 type PendingReservationAction = {
   reservation: Reservation;
@@ -123,7 +129,7 @@ function getActionVariant(
   return "primary";
 }
 
-function getGuestName(reservation: Reservation) {
+function getGuestName(reservation: AdminReservationSummary) {
   return `${reservation.guestFirstName} ${reservation.guestLastName}`;
 }
 
@@ -148,13 +154,9 @@ export function ReservationsClient({
   const searchParams = useSearchParams();
   const detailsRef = useRef<HTMLDivElement | null>(null);
 
-  const [reservations, setReservations] = useState(initialReservations);
+  const detailsRequest = useRef<AbortController | null>(null);
   const [filters, setFilters] = useState(initialFilters);
-  const previousInitialReservationsRef = useRef(initialReservations);
-  const previousInitialFiltersRef = useRef(initialFilters);
-  const [selectedReservationId, setSelectedReservationId] = useState(
-    initialReservations[0]?.id || "",
-  );
+  const [details, setDetails] = useState<ReservationDetailsState | null>(null);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState("");
   const [checkInReservationId, setCheckInReservationId] = useState("");
@@ -162,62 +164,48 @@ export function ReservationsClient({
   const [pendingReservationAction, setPendingReservationAction] =
     useState<PendingReservationAction | null>(null);
 
-  if (
-    initialReservations !== previousInitialReservationsRef.current ||
-    initialFilters !== previousInitialFiltersRef.current
-  ) {
-    previousInitialReservationsRef.current = initialReservations;
-    previousInitialFiltersRef.current = initialFilters;
-    setReservations(initialReservations);
-    setFilters(initialFilters);
+  useEffect(() => () => detailsRequest.current?.abort(), []);
 
-    setSelectedReservationId((currentSelectedId) => {
-      const stillExists = initialReservations.some(
-        (reservation) => reservation.id === currentSelectedId,
-      );
+  const selectedReservation = details?.state === "ready" ? details.reservation : null;
 
-      if (stillExists) {
-        return currentSelectedId;
-      }
-
-      return initialReservations[0]?.id || "";
+  async function selectReservation(reservationId: string) {
+    const panel = detailsRef.current;
+    panel?.focus({ preventScroll: true });
+    panel?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "start",
     });
 
+    if (details?.id === reservationId && details.state !== "error") return;
+
+    detailsRequest.current?.abort();
+    const request = new AbortController();
+    detailsRequest.current = request;
+    setDetails({ id: reservationId, state: "loading" });
+    setError("");
     setCheckInReservationId("");
     setRoomAssignments({});
     setPendingReservationAction(null);
-    setError("");
-  }
 
-  const selectedReservation = useMemo(() => {
-    return (
-      reservations.find(
-        (reservation) => reservation.id === selectedReservationId,
-      ) ||
-      reservations[0] ||
-      null
-    );
-  }, [reservations, selectedReservationId]);
-
-  const sortedReservations = useMemo(() => {
-    return [...reservations].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }, [reservations]);
-
-  function scrollToDetails() {
-    window.setTimeout(() => {
-      detailsRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 0);
-  }
-
-  function selectReservation(reservationId: string) {
-    setSelectedReservationId(reservationId);
-    scrollToDetails();
+    try {
+      const data = await clientFetchJson<ReservationResponse>(
+        `/api/admin/hotels/${hotel.id}/reservations/${reservationId}`,
+        { signal: request.signal },
+      );
+      if (!request.signal.aborted) {
+        setDetails({ id: reservationId, state: "ready", reservation: data.reservation });
+      }
+    } catch (caughtError) {
+      if (!request.signal.aborted) {
+        setDetails({
+          id: reservationId,
+          state: "error",
+          message: caughtError instanceof FrontendApiError
+            ? caughtError.message
+            : "Unable to load reservation details. Please try again.",
+        });
+      }
+    }
   }
 
   function updateFilter<Key extends keyof ReservationFilters>(
@@ -271,15 +259,11 @@ export function ReservationsClient({
   }
 
   function replaceReservation(updatedReservation: Reservation) {
-    setReservations((current) =>
-      current.map((reservation) =>
-        reservation.id === updatedReservation.id
-          ? updatedReservation
-          : reservation,
-      ),
+    setDetails((current) =>
+      current?.id === updatedReservation.id
+        ? { id: updatedReservation.id, state: "ready", reservation: updatedReservation }
+        : current,
     );
-
-    setSelectedReservationId(updatedReservation.id);
   }
 
   function startCheckIn(reservation: Reservation) {
@@ -507,196 +491,79 @@ export function ReservationsClient({
         </CardContent>
       </Card>
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] xl:items-start">
-        <Card className="min-w-0 xl:max-h-[calc(100vh-7rem)] xl:overflow-hidden">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] xl:items-start">
+        <Card className="min-w-0 xl:col-start-2 xl:row-start-1">
           <CardHeader>
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-              <div>
-                <h2 className="text-base font-bold text-foreground">
-                  Reservation List
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {sortedReservations.length} reservation
-                  {sortedReservations.length === 1 ? "" : "s"} found.
-                </p>
-              </div>
-            </div>
+            <h2 className="text-base font-bold text-foreground">Reservation List</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {initialReservations.length} reservation
+              {initialReservations.length === 1 ? "" : "s"} found.
+            </p>
           </CardHeader>
 
-          <CardContent className="min-w-0 overflow-x-auto xl:max-h-[calc(100vh-15rem)] xl:overflow-y-auto">
-            {sortedReservations.length === 0 ? (
+          <CardContent className="max-h-[60vh] min-w-0 overflow-y-auto">
+            {initialReservations.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-surface-muted px-4 py-10 text-center">
-                <p className="text-sm font-semibold text-foreground">
-                  No reservations found
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Change filters or create reservations from the booking flow
-                  later.
-                </p>
+                <p className="text-sm font-semibold text-foreground">No reservations found</p>
+                <p className="mt-1 text-sm text-muted-foreground">Try changing the filters.</p>
               </div>
             ) : (
-              <>
-                <div className="space-y-3 md:hidden">
-                  {sortedReservations.map((reservation) => (
-                    <button
-                      key={reservation.id}
-                      type="button"
-                      onClick={() => selectReservation(reservation.id)}
-                      className="w-full rounded-xl border border-border bg-white px-4 py-4 text-left shadow-sm transition hover:border-primary hover:bg-primary-soft"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-bold text-foreground">
-                            {reservation.reservationNumber}
-                          </p>
-
-                          <p className="mt-1 break-words text-sm font-medium text-foreground">
-                            {getGuestName(reservation)}
-                          </p>
-
-                          <p className="mt-1 break-all text-xs text-muted-foreground">
-                            {reservation.guestEmail}
-                          </p>
-                        </div>
-
-                        <Badge
-                          variant={getStatusBadgeVariant(reservation.status)}
-                        >
-                          {formatStatus(reservation.status)}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-                        <div>
-                          <p className="font-medium text-foreground">
-                            Check-in
-                          </p>
-                          <p>{formatDate(reservation.checkInDate)}</p>
-                        </div>
-
-                        <div>
-                          <p className="font-medium text-foreground">Total</p>
-                          <p>
-                            {formatMoney(
-                              reservation.total,
-                              reservation.currency,
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      <p className="mt-3 text-xs font-semibold text-primary">
-                        Tap to view details
+              <ul className="divide-y divide-border">
+                {initialReservations.map((reservation) => (
+                  <li key={reservation.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-semibold text-foreground">
+                        {reservation.reservationNumber}
                       </p>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full min-w-[980px] border-collapse text-left">
-                    <thead>
-                      <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                        <th className="py-3 pr-4 font-semibold">
-                          Reservation
-                        </th>
-                        <th className="py-3 pr-4 font-semibold">Guest</th>
-                        <th className="py-3 pr-4 font-semibold">Dates</th>
-                        <th className="py-3 pr-4 font-semibold">Rooms</th>
-                        <th className="py-3 pr-4 font-semibold">Status</th>
-                        <th className="py-3 pr-4 font-semibold">Total</th>
-                        <th className="sticky right-0 bg-surface py-3 text-right font-semibold">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {sortedReservations.map((reservation) => (
-                        <tr
-                          key={reservation.id}
-                          onClick={() => selectReservation(reservation.id)}
-                          className="cursor-pointer border-b border-border hover:bg-surface-muted"
-                        >
-                          <td className="py-4 pr-4 align-top">
-                            <p className="font-semibold text-foreground">
-                              {reservation.reservationNumber}
-                            </p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Created {formatDate(reservation.createdAt)}
-                            </p>
-                          </td>
-
-                          <td className="py-4 pr-4 align-top">
-                            <p className="text-sm font-semibold text-foreground">
-                              {getGuestName(reservation)}
-                            </p>
-                            <p className="mt-1 break-all text-xs text-muted-foreground">
-                              {reservation.guestEmail}
-                            </p>
-                          </td>
-
-                          <td className="py-4 pr-4 align-top text-sm text-muted-foreground">
-                            <p>{formatDate(reservation.checkInDate)}</p>
-                            <p>{formatDate(reservation.checkOutDate)}</p>
-                          </td>
-
-                          <td className="py-4 pr-4 align-top text-sm text-muted-foreground">
-                            {reservation.reservationRooms.length} room request
-                            {reservation.reservationRooms.length === 1
-                              ? ""
-                              : "s"}
-                          </td>
-
-                          <td className="py-4 pr-4 align-top">
-                            <Badge
-                              variant={getStatusBadgeVariant(
-                                reservation.status,
-                              )}
-                            >
-                              {formatStatus(reservation.status)}
-                            </Badge>
-                          </td>
-
-                          <td className="py-4 pr-4 align-top text-sm font-semibold text-foreground">
-                            {formatMoney(
-                              reservation.total,
-                              reservation.currency,
-                            )}
-                          </td>
-
-                          <td className="sticky right-0 bg-surface py-4 align-top shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.4)]">
-                            <div className="flex justify-end">
-                              <Button
-                                variant="secondary"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  selectReservation(reservation.id);
-                                }}
-                              >
-                                Details
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">
+                        {getGuestName(reservation)}
+                      </p>
+                    </div>
+                    <Button
+                      variant={details?.id === reservation.id ? "primary" : "secondary"}
+                      aria-label={`Details for ${reservation.reservationNumber}, ${getGuestName(reservation)}`}
+                      aria-controls="reservation-details"
+                      aria-pressed={details?.id === reservation.id}
+                      disabled={Boolean(actionLoading)}
+                      onClick={() => void selectReservation(reservation.id)}
+                    >
+                      Details
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>
 
-        <div ref={detailsRef} className="min-w-0">
-          <Card className="min-w-0 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
+        <div
+          ref={detailsRef}
+          id="reservation-details"
+          role="region"
+          aria-labelledby="reservation-details-heading"
+          tabIndex={-1}
+          className="min-w-0 scroll-mt-24 xl:col-start-1 xl:row-start-1"
+        >
+          <Card className="min-w-0">
             <CardHeader>
-              <h2 className="text-base font-bold text-foreground">
+              <h2 id="reservation-details-heading" className="text-base font-bold text-foreground">
                 Reservation Details
               </h2>
             </CardHeader>
 
             <CardContent>
-              {!selectedReservation ? (
+              {details?.state === "loading" ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Loading reservation details…
+                </p>
+              ) : details?.state === "error" ? (
+                <div className="space-y-3">
+                  <p role="alert" className="text-sm text-danger">{details.message}</p>
+                  <Button variant="secondary" onClick={() => void selectReservation(details.id)}>
+                    Retry
+                  </Button>
+                </div>
+              ) : !selectedReservation ? (
                 <p className="text-sm text-muted-foreground">
                   Select a reservation to view details.
                 </p>

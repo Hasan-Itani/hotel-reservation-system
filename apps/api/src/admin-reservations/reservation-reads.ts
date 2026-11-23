@@ -4,6 +4,13 @@ import { reservationListQuerySchema } from "./reservation-list-query";
 
 type ReadResult = { status: number; body: object };
 
+const reservationSummarySelect = {
+  id: true,
+  reservationNumber: true,
+  guestFirstName: true,
+  guestLastName: true,
+} satisfies Prisma.ReservationSelect;
+
 function readResponse(body: object, { status = 200 }: { status?: number } = {}): ReadResult {
   return { body, status };
 }
@@ -88,6 +95,7 @@ export async function listAdminReservations(
   searchParams: URLSearchParams,
 ) {
   const parsed = reservationListQuerySchema.safeParse({
+    view: searchParams.get("view") ?? undefined,
     status: searchParams.get("status") ?? undefined,
     guestEmail: searchParams.get("guestEmail") ?? undefined,
     checkInFrom: searchParams.get("checkInFrom") ?? undefined,
@@ -154,13 +162,10 @@ export async function listAdminReservations(
           }
         : {}),
     },
-    select: {
-      id: true,
-      reservationNumber: true,
+    select: query.view === "summary" ? reservationSummarySelect : {
+      ...reservationSummarySelect,
       hotelId: true,
       userId: true,
-      guestFirstName: true,
-      guestLastName: true,
       guestEmail: true,
       guestPhone: true,
       checkInDate: true,

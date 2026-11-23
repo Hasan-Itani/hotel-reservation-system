@@ -338,6 +338,12 @@ export type ReservationsResponse = {
   reservations: Reservation[];
 };
 
+export type AdminReservationSummary = Pick<Reservation, "id" | "reservationNumber" | "guestFirstName" | "guestLastName">;
+
+export type AdminReservationSummariesResponse = Omit<ReservationsResponse, "reservations"> & {
+  reservations: AdminReservationSummary[];
+};
+
 export type ReservationResponse = {
   message?: string;
   reservation: Reservation;

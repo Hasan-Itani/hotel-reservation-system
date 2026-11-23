@@ -12,6 +12,7 @@ const reservationStatusSchema = z.enum([
 
 export const reservationListQuerySchema = z
   .object({
+    view: z.enum(["summary", "full"]).optional(),
     status: reservationStatusSchema.optional(),
     guestEmail: z.string().trim().toLowerCase().email().optional(),
     checkInFrom: dateOnlySchema.optional(),

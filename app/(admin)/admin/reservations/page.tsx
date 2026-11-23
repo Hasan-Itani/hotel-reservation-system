@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { requireAdminPageAccess } from "@/lib/frontend/admin-page-access";
 import { serverFetchJson, ServerApiError } from "@/lib/frontend/api-server";
 import type {
-    ReservationsResponse,
+    AdminReservationSummariesResponse,
     RoomsResponse,
 } from "@/lib/frontend/types";
 
@@ -24,7 +24,7 @@ function buildReservationsPath(
     hotelId: string,
     params: Awaited<ReservationsPageProps["searchParams"]>,
 ) {
-    const query = new URLSearchParams();
+    const query = new URLSearchParams({ view: "summary" });
 
     if (params?.status) query.set("status", params.status);
     if (params?.guestEmail) query.set("guestEmail", params.guestEmail);
@@ -33,11 +33,7 @@ function buildReservationsPath(
     if (params?.checkOutFrom) query.set("checkOutFrom", params.checkOutFrom);
     if (params?.checkOutTo) query.set("checkOutTo", params.checkOutTo);
 
-    const suffix = query.toString();
-
-    return suffix
-        ? `/api/admin/hotels/${hotelId}/reservations?${suffix}`
-        : `/api/admin/hotels/${hotelId}/reservations`;
+    return `/api/admin/hotels/${hotelId}/reservations?${query.toString()}`;
 }
 
 export default async function ReservationsPage({
@@ -59,14 +55,15 @@ export default async function ReservationsPage({
         );
     }
 
-    let reservations: ReservationsResponse["reservations"] = [];
+    const reservationsPath = buildReservationsPath(selectedHotel.id, params);
+    let reservations: AdminReservationSummariesResponse["reservations"] = [];
     let rooms: RoomsResponse["rooms"] = [];
     let loadError = "";
 
     try {
         const [reservationsData, roomsData] = await Promise.all([
-            serverFetchJson<ReservationsResponse>(
-                buildReservationsPath(selectedHotel.id, params),
+            serverFetchJson<AdminReservationSummariesResponse>(
+                reservationsPath,
             ),
             serverFetchJson<RoomsResponse>(
                 `/api/admin/hotels/${selectedHotel.id}/rooms`,
@@ -105,6 +102,7 @@ export default async function ReservationsPage({
             }
         >
             <ReservationsClient
+                key={reservationsPath}
                 hotel={selectedHotel}
                 initialReservations={reservations}
                 rooms={rooms}

@@ -95,4 +95,32 @@ describe("admin reservation and payment reads", () => {
       status: 404, body: { error: "Payment not found" },
     });
   });
+
+  it("selects only list fields for the summary view and leaves the default response intact", async () => {
+    const selectors: Array<Prisma.ReservationSelect | null | undefined> = [];
+    const database = {
+      hotel: { findFirst: async () => ({ id: hotelId, name: "Test Hotel" }) },
+      reservation: {
+        findMany: async ({ select, where }: Prisma.ReservationFindManyArgs) => {
+          assert.deepEqual(where, { hotelId, status: "CONFIRMED" });
+          selectors.push(select);
+          return [];
+        },
+      },
+    } as unknown as PrismaClient;
+    const summary = await listAdminReservations(database, hotelId, new URLSearchParams({ view: "summary", status: "CONFIRMED" }));
+    const full = await listAdminReservations(database, hotelId, new URLSearchParams({ status: "CONFIRMED" }));
+
+    assert.equal(summary.status, 200);
+    assert.equal(full.status, 200);
+    assert.deepEqual(selectors[0], {
+      id: true,
+      reservationNumber: true,
+      guestFirstName: true,
+      guestLastName: true,
+    });
+    assert.equal(selectors[1]?.guestEmail, true);
+    assert.equal(selectors[1]?.total, true);
+    assert.ok(selectors[1]?.reservationRooms);
+  });
 });

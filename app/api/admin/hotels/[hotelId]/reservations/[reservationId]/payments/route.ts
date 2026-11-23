@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { listAdminReservationPayments } from "@/apps/api/src/admin-reservations/reservation-reads";
+import { proxyAdminReservationRead } from "@/lib/adminReservationReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -46,6 +48,8 @@ export async function GET(
   },
 ) {
   const { hotelId, reservationId } = await params;
+  const proxied = await proxyAdminReservationRead(request, hotelId, reservationId, "payments");
+  if (proxied) return proxied;
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -53,52 +57,11 @@ export async function GET(
     return auth.response;
   }
 
-  const reservation = await prisma.reservation.findFirst({
-    where: {
-      id: reservationId,
-      hotelId,
-    },
-    select: {
-      id: true,
-      reservationNumber: true,
-      status: true,
-      total: true,
-      currency: true,
-      guestFirstName: true,
-      guestLastName: true,
-      guestEmail: true,
-      payments: {
-        select: {
-          id: true,
-          reservationId: true,
-          provider: true,
-          providerReference: true,
-          methodLabel: true,
-          cardLast4: true,
-          cardHolderName: true,
-          isMock: true,
-          amount: true,
-          currency: true,
-          status: true,
-          paidAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
+  const result = await listAdminReservationPayments(prisma, hotelId, reservationId);
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store" },
   });
-
-  if (!reservation) {
-    return NextResponse.json(
-      { error: "Reservation not found" },
-      { status: 404 },
-    );
-  }
-
-  return NextResponse.json({ reservation });
 }
 
 export async function POST(

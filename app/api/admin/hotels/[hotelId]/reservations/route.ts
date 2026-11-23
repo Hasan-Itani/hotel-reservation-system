@@ -1,18 +1,18 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { listAdminReservations } from "@/apps/api/src/admin-reservations/reservation-reads";
+import { proxyAdminReservationRead } from "@/lib/adminReservationReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
 import {
   generateReservationNumber,
-  parseDateOnlyToUtc,
 } from "@/lib/hotelInventory";
 import { hasGlobalRole, hasHotelRole } from "@/lib/permissions";
 import { lockHotelReservationInventory } from "@/lib/reservationConcurrency";
 import { validateReservationRoomAvailability } from "@/lib/reservationAvailability";
 import {
   reservationCreateSchema,
-  reservationListQuerySchema,
 } from "@/lib/validators";
 
 import {
@@ -27,6 +27,8 @@ export async function GET(
   { params }: { params: Promise<{ hotelId: string }> }
 ) {
   const { hotelId } = await params;
+  const proxied = await proxyAdminReservationRead(request, hotelId);
+  if (proxied) return proxied;
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -34,141 +36,10 @@ export async function GET(
     return auth.response;
   }
 
-  const url = new URL(request.url);
-
-  const parsed = reservationListQuerySchema.safeParse({
-    status: url.searchParams.get("status") ?? undefined,
-    guestEmail: url.searchParams.get("guestEmail") ?? undefined,
-    checkInFrom: url.searchParams.get("checkInFrom") ?? undefined,
-    checkInTo: url.searchParams.get("checkInTo") ?? undefined,
-    checkOutFrom: url.searchParams.get("checkOutFrom") ?? undefined,
-    checkOutTo: url.searchParams.get("checkOutTo") ?? undefined,
-  });
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "Validation failed",
-        details: parsed.error.flatten(),
-      },
-      { status: 400 }
-    );
-  }
-
-  const query = parsed.data;
-
-  const hotel = await prisma.hotel.findFirst({
-    where: {
-      id: hotelId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      name: true,
-      currency: true,
-    },
-  });
-
-  if (!hotel) {
-    return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
-  }
-
-  const reservations = await prisma.reservation.findMany({
-    where: {
-      hotelId,
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.guestEmail ? { guestEmail: query.guestEmail } : {}),
-      ...(query.checkInFrom || query.checkInTo
-        ? {
-            checkInDate: {
-              ...(query.checkInFrom
-                ? { gte: parseDateOnlyToUtc(query.checkInFrom) }
-                : {}),
-              ...(query.checkInTo
-                ? { lte: parseDateOnlyToUtc(query.checkInTo) }
-                : {}),
-            },
-          }
-        : {}),
-      ...(query.checkOutFrom || query.checkOutTo
-        ? {
-            checkOutDate: {
-              ...(query.checkOutFrom
-                ? { gte: parseDateOnlyToUtc(query.checkOutFrom) }
-                : {}),
-              ...(query.checkOutTo
-                ? { lte: parseDateOnlyToUtc(query.checkOutTo) }
-                : {}),
-            },
-          }
-        : {}),
-    },
-    select: {
-      id: true,
-      reservationNumber: true,
-      hotelId: true,
-      userId: true,
-      guestFirstName: true,
-      guestLastName: true,
-      guestEmail: true,
-      guestPhone: true,
-      checkInDate: true,
-      checkOutDate: true,
-      adults: true,
-      children: true,
-      specialRequests: true,
-      status: true,
-      subtotal: true,
-      taxes: true,
-      total: true,
-      currency: true,
-      discountAmount: true,
-      serviceFee: true,
-      createdAt: true,
-      confirmedAt: true,
-      cancelledAt: true,
-      checkedInAt: true,
-      checkedOutAt: true,
-      noShowAt: true,
-      cancellationReason: true,
-      reservationRooms: {
-        select: {
-          id: true,
-          roomId: true,
-          roomTypeId: true,
-          nightlyPrice: true,
-          guests: true,
-          room: {
-            select: {
-              id: true,
-              roomNumber: true,
-              floor: true,
-              status: true,
-            },
-          },
-          roomType: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              basePrice: true,
-              capacityAdults: true,
-              capacityChildren: true,
-              bedType: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-
-  return NextResponse.json({
-    hotelId: hotel.id,
-    hotelName: hotel.name,
-    reservations,
+  const result = await listAdminReservations(prisma, hotelId, new URL(request.url).searchParams);
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store" },
   });
 }
 

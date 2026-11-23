@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getReservationSelect, readAdminReservation } from "@/apps/api/src/admin-reservations/reservation-reads";
+import { proxyAdminReservationRead } from "@/lib/adminReservationReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -10,80 +12,6 @@ import { validateReservationActionTransition } from "@/lib/reservationStatus";
 
 export const dynamic = "force-dynamic";
 
-function getReservationSelect() {
-  return {
-    id: true,
-    reservationNumber: true,
-    hotelId: true,
-    userId: true,
-    guestFirstName: true,
-    guestLastName: true,
-    guestEmail: true,
-    guestPhone: true,
-    checkInDate: true,
-    checkOutDate: true,
-    adults: true,
-    children: true,
-    specialRequests: true,
-    status: true,
-    subtotal: true,
-    taxes: true,
-    total: true,
-    currency: true,
-    discountAmount: true,
-    serviceFee: true,
-    createdAt: true,
-    updatedAt: true,
-    confirmedAt: true,
-    cancelledAt: true,
-    checkedInAt: true,
-    checkedOutAt: true,
-    noShowAt: true,
-    cancellationReason: true,
-    reservationRooms: {
-      select: {
-        id: true,
-        roomId: true,
-        roomTypeId: true,
-        nightlyPrice: true,
-        guests: true,
-        room: {
-          select: {
-            id: true,
-            roomNumber: true,
-            floor: true,
-            status: true,
-          },
-        },
-        roomType: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            basePrice: true,
-            capacityAdults: true,
-            capacityChildren: true,
-            bedType: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    },
-  } satisfies Prisma.ReservationSelect;
-}
-
-async function getReservationById(hotelId: string, reservationId: string) {
-  return prisma.reservation.findFirst({
-    where: {
-      id: reservationId,
-      hotelId,
-    },
-    select: getReservationSelect(),
-  });
-}
-
 export async function GET(
   request: Request,
   {
@@ -93,6 +21,8 @@ export async function GET(
   },
 ) {
   const { hotelId, reservationId } = await params;
+  const proxied = await proxyAdminReservationRead(request, hotelId, reservationId);
+  if (proxied) return proxied;
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -100,16 +30,11 @@ export async function GET(
     return auth.response;
   }
 
-  const reservation = await getReservationById(hotelId, reservationId);
-
-  if (!reservation) {
-    return NextResponse.json(
-      { error: "Reservation not found" },
-      { status: 404 },
-    );
-  }
-
-  return NextResponse.json({ reservation });
+  const result = await readAdminReservation(prisma, hotelId, reservationId);
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store" },
+  });
 }
 
 export async function PATCH(

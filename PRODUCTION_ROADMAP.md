@@ -206,7 +206,10 @@ Legend:
     - [x] Migrate room and room-type list and detail endpoints with hotel-scoped authorization.
     - [x] Migrate room and room-type writes, audit logging, and lifecycle rules.
     - [x] Fix the proxy for bodyless room and room-type deletion requests and cover it with a Fastify regression test.
-  - Reservations and payments
+  - [~] Reservations and payments
+    - [x] Migrate reservation and payment list/detail reads, including reservation filters and hotel-scoped access.
+    - [ ] Migrate reservation writes and lifecycle actions.
+    - [ ] Migrate admin mock payment writes and status changes.
   - Guests and staff
   - Inquiries and audit logs
 - [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration:
@@ -224,6 +227,7 @@ Legend:
   - [x] Guest mock payment writes proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Admin room and room-type reads proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Admin room and room-type writes proxy to NestJS when `NEST_API_BASE_URL` is configured.
+  - [x] Admin reservation and payment reads proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [ ] Remaining migrated domains
 - [ ] Remove migrated Next.js route handlers only after API contract and production verification.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
@@ -231,7 +235,7 @@ Legend:
 ## Next Recommended Work
 
 1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
-2. Verify admin room and room-type writes through NestJS, then migrate admin reservations and payments.
+2. Verify admin reservation and payment reads through NestJS, then migrate admin reservation writes.
 3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { readAdminReservationPayment } from "@/apps/api/src/admin-reservations/reservation-reads";
+import { proxyAdminReservationRead } from "@/lib/adminReservationReadProxy";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/auditLog";
 import { requireHotelAccess } from "@/lib/guards";
@@ -37,6 +39,8 @@ export async function GET(
   },
 ) {
   const { hotelId, reservationId, paymentId } = await params;
+  const proxied = await proxyAdminReservationRead(request, hotelId, reservationId, "payments", paymentId);
+  if (proxied) return proxied;
 
   const auth = await requireHotelAccess(hotelId);
 
@@ -44,46 +48,11 @@ export async function GET(
     return auth.response;
   }
 
-  const payment = await prisma.payment.findFirst({
-    where: {
-      id: paymentId,
-      reservationId,
-      reservation: {
-        hotelId,
-      },
-    },
-    select: {
-      id: true,
-      reservationId: true,
-      provider: true,
-      providerReference: true,
-      methodLabel: true,
-      cardLast4: true,
-      cardHolderName: true,
-      isMock: true,
-      amount: true,
-      currency: true,
-      status: true,
-      paidAt: true,
-      createdAt: true,
-      updatedAt: true,
-      reservation: {
-        select: {
-          id: true,
-          reservationNumber: true,
-          status: true,
-          total: true,
-          currency: true,
-        },
-      },
-    },
+  const result = await readAdminReservationPayment(prisma, hotelId, reservationId, paymentId);
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store" },
   });
-
-  if (!payment) {
-    return NextResponse.json({ error: "Payment not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ payment });
 }
 
 export async function PATCH(

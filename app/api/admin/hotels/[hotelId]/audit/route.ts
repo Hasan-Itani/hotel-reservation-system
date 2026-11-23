@@ -1,147 +1,15 @@
-import { Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
-import {
-  buildAuditCategoryWhere,
-  buildHotelAuditVisibilityWhere,
-  normalizeAuditEventCategory,
-} from "@/lib/auditEvents";
+import { listHotelAudit } from "@/apps/api/src/inquiries/audit-reads";
+import { handleAdminActivity } from "@/lib/adminActivityProxy";
 import { prisma } from "@/lib/prisma";
-import { requireHotelAccess } from "@/lib/guards";
-import { hasGlobalRole, hasHotelRole, type AuthUser } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
-
-function canViewAudit(user: AuthUser, hotelId: string) {
-  return (
-    hasGlobalRole(user, "SUPER_ADMIN") ||
-    hasHotelRole(user, hotelId, "HOTEL_ADMIN") ||
-    hasHotelRole(user, hotelId, "MANAGER")
-  );
-}
-
-function normalizeLimit(value: string | null) {
-  if (!value) return 100;
-
-  const parsed = Number(value);
-
-  if (!Number.isInteger(parsed)) return 100;
-
-  return Math.min(Math.max(parsed, 1), 200);
-}
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ hotelId: string }> },
 ) {
   const { hotelId } = await params;
-
-  const auth = await requireHotelAccess(hotelId);
-
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  if (!canViewAudit(auth.user, hotelId)) {
-    return NextResponse.json(
-      {
-        error: "Requires HOTEL_ADMIN or MANAGER role for this hotel",
-      },
-      { status: 403 },
-    );
-  }
-
-  const hotel = await prisma.hotel.findFirst({
-    where: {
-      id: hotelId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
-
-  if (!hotel) {
-    return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
-  }
-
-  const url = new URL(request.url);
-  const action = url.searchParams.get("action") || undefined;
-  const entityType = url.searchParams.get("entityType") || undefined;
-  const actorUserId = url.searchParams.get("actorUserId") || undefined;
-  const eventCategory = normalizeAuditEventCategory(
-    url.searchParams.get("eventCategory"),
+  return handleAdminActivity(request, hotelId, ["audit"], (user) =>
+    listHotelAudit(prisma, user, hotelId, new URL(request.url).searchParams),
   );
-  const limit = normalizeLimit(url.searchParams.get("limit"));
-  const visibilityWhere = buildHotelAuditVisibilityWhere(hotelId);
-  const whereConditions: Prisma.AuditLogWhereInput[] = [visibilityWhere];
-  const categoryWhere = buildAuditCategoryWhere(eventCategory);
-
-  if (categoryWhere) whereConditions.push(categoryWhere);
-  if (action) whereConditions.push({ action });
-  if (entityType) whereConditions.push({ entityType });
-  if (actorUserId) whereConditions.push({ actorUserId });
-
-  const where: Prisma.AuditLogWhereInput = {
-    AND: whereConditions,
-  };
-
-  const [logs, actionRows, entityTypeRows] = await Promise.all([
-    prisma.auditLog.findMany({
-      where,
-      select: {
-        id: true,
-        hotelId: true,
-        actorUserId: true,
-        action: true,
-        entityType: true,
-        entityId: true,
-        summary: true,
-        metadata: true,
-        createdAt: true,
-        actor: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: limit,
-    }),
-    prisma.auditLog.findMany({
-      where: visibilityWhere,
-      distinct: ["action"],
-      select: {
-        action: true,
-      },
-      orderBy: {
-        action: "asc",
-      },
-    }),
-    prisma.auditLog.findMany({
-      where: visibilityWhere,
-      distinct: ["entityType"],
-      select: {
-        entityType: true,
-      },
-      orderBy: {
-        entityType: "asc",
-      },
-    }),
-  ]);
-
-  return NextResponse.json({
-    hotelId: hotel.id,
-    hotelName: hotel.name,
-    logs,
-    filters: {
-      actions: actionRows.map((item) => item.action),
-      entityTypes: entityTypeRows.map((item) => item.entityType),
-    },
-  });
 }

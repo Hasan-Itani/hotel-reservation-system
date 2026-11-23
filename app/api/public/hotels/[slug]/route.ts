@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/getClientIp";
-import { proxyNestGet } from "@/lib/nestApiProxy";
+import { proxyNestGet, proxyNestJsonRequest } from "@/lib/nestApiProxy";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
-import { publicHotelInquiryCreateSchema } from "@/lib/validators";
+import { createPublicHotelInquiry } from "@/apps/api/src/inquiries/inquiry-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +92,12 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
+  const proxied = await proxyNestJsonRequest(request, `/public/hotels/${encodeURIComponent(slug)}`, {
+    rejectRedirects: true,
+    unavailableError: "Contact service is unavailable. Please try again.",
+  });
+  if (proxied) return proxied;
+
   const ip = getClientIp(request);
 
   const limiter = await rateLimit({
@@ -115,73 +121,9 @@ export async function POST(
     );
   }
 
-  const body = await request.json().catch(() => null);
-  const parsed = publicHotelInquiryCreateSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: parsed.error.issues[0]?.message || "Invalid contact request",
-      },
-      {
-        status: 400,
-        headers: rateLimitHeaders(limiter),
-      },
-    );
-  }
-
-  const hotel = await prisma.hotel.findFirst({
-    where: {
-      slug,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-    },
+  const result = await createPublicHotelInquiry(prisma, slug, () => request.json());
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store", ...rateLimitHeaders(limiter) },
   });
-
-  if (!hotel) {
-    return NextResponse.json(
-      { error: "Hotel not found" },
-      {
-        status: 404,
-        headers: rateLimitHeaders(limiter),
-      },
-    );
-  }
-
-  const inquiry = await prisma.hotelInquiry.create({
-    data: {
-      hotelId: hotel.id,
-      guestName: parsed.data.guestName,
-      guestEmail: parsed.data.guestEmail,
-      guestPhone: parsed.data.guestPhone,
-      inquiryType: parsed.data.inquiryType,
-      subject: parsed.data.subject,
-      message: parsed.data.message,
-    },
-    select: {
-      id: true,
-      hotelId: true,
-      guestName: true,
-      guestEmail: true,
-      guestPhone: true,
-      inquiryType: true,
-      subject: true,
-      message: true,
-      status: true,
-      createdAt: true,
-    },
-  });
-
-  return NextResponse.json(
-    {
-      message: "Contact message sent",
-      inquiry,
-    },
-    {
-      status: 201,
-      headers: rateLimitHeaders(limiter),
-    },
-  );
 }

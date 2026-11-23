@@ -102,4 +102,47 @@ describe("hotel inquiries and audit activity", () => {
     assert.equal(calls[0].take, 200);
     assert.ok(calls.slice(1).every((call) => call.where && JSON.stringify(call.where) === JSON.stringify(visibility)));
   });
+
+  for (const status of ["NEW", "READ", "REPLIED", "ARCHIVED"] as const) {
+    it(`does not write or audit a repeated ${status} action`, async () => {
+      const timestamp = new Date("2026-11-23T14:00:00Z");
+      const inquiry = {
+        id: inquiryId, status, adminNote: "Follow-up",
+        readAt: status === "NEW" ? null : timestamp,
+        repliedAt: status === "REPLIED" ? timestamp : null,
+        archivedAt: status === "ARCHIVED" ? timestamp : null,
+        updatedAt: timestamp,
+      };
+      const tx = {
+        hotelInquiry: {
+          findFirst: async () => inquiry,
+          update: async () => assert.fail("An unchanged inquiry must not be written"),
+        },
+        auditLog: { create: async () => assert.fail("An unchanged inquiry must not be audited") },
+      };
+      const database = { $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx) } as unknown as PrismaClient;
+      const result = await updateAdminInquiry(database, staff, hotelId, inquiryId, async () => ({ status, adminNote: " Follow-up " }));
+      assert.deepEqual(result, { status: 200, body: { message: "No changes to save", inquiry } });
+    });
+  }
+
+  it("audits a real note change without resetting timestamps when the status is unchanged", async () => {
+    const inquiry = { id: inquiryId, status: "READ", adminNote: "Old note", subject: "Fixture" };
+    const tx = {
+      hotelInquiry: {
+        findFirst: async () => inquiry,
+        update: async ({ data }: Prisma.HotelInquiryUpdateArgs) => {
+          assert.deepEqual(data, { adminNote: "New note" });
+          return { ...inquiry, ...data };
+        },
+      },
+      auditLog: { create: async ({ data }: { data: Prisma.AuditLogUncheckedCreateInput }) => {
+        assert.deepEqual(data.metadata, { previousStatus: "READ", nextStatus: "READ", adminNoteChanged: true });
+      } },
+    };
+    const database = { $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx) } as unknown as PrismaClient;
+    const result = await updateAdminInquiry(database, staff, hotelId, inquiryId, async () => ({ status: "READ", adminNote: "New note" }));
+    assert.equal(result.status, 200);
+    assert.equal(Reflect.get(result.body, "inquiry").adminNote, "New note");
+  });
 });

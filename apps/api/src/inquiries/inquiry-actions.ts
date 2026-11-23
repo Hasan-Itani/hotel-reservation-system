@@ -101,12 +101,7 @@ export async function updateAdminInquiry(
         id: inquiryId,
         hotelId,
       },
-      select: {
-        id: true,
-        status: true,
-        adminNote: true,
-        subject: true,
-      },
+      select: adminInquirySelect,
     });
 
     if (!existingInquiry) {
@@ -121,8 +116,9 @@ export async function updateAdminInquiry(
       archivedAt?: Date | null;
     } = {};
 
-    if (parsed.data.status !== undefined) {
-      updateData.status = parsed.data.status;
+    const { status, adminNote } = parsed.data;
+    if (status !== undefined && status !== existingInquiry.status) {
+      updateData.status = status;
 
       if (parsed.data.status === "READ") {
         updateData.readAt = new Date();
@@ -144,8 +140,12 @@ export async function updateAdminInquiry(
       }
     }
 
-    if (parsed.data.adminNote !== undefined) {
-      updateData.adminNote = parsed.data.adminNote;
+    if (adminNote !== undefined && adminNote !== existingInquiry.adminNote) {
+      updateData.adminNote = adminNote;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return activityResponse({ message: "No changes to save", inquiry: existingInquiry });
     }
 
     const inquiry = await tx.hotelInquiry.update({

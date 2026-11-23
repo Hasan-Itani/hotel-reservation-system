@@ -154,7 +154,7 @@ export function AdminInquiriesClient({
   }
 
   function updateSelectedStatus(status: HotelInquiryStatus) {
-    if (!selectedInquiry) return;
+    if (!selectedInquiry || selectedInquiry.status === status) return;
 
     updateInquiry({
       inquiryId: selectedInquiry.id,
@@ -417,7 +417,7 @@ export function AdminInquiriesClient({
                     <Button
                       variant="secondary"
                       onClick={() => updateSelectedStatus("READ")}
-                      disabled={isUpdating}
+                      disabled={isUpdating || selectedInquiry.status === "READ"}
                     >
                       Mark read
                     </Button>
@@ -425,7 +425,7 @@ export function AdminInquiriesClient({
                     <Button
                       variant="secondary"
                       onClick={() => updateSelectedStatus("REPLIED")}
-                      disabled={isUpdating}
+                      disabled={isUpdating || selectedInquiry.status === "REPLIED"}
                     >
                       Mark replied
                     </Button>
@@ -433,7 +433,7 @@ export function AdminInquiriesClient({
                     <Button
                       variant="secondary"
                       onClick={() => updateSelectedStatus("NEW")}
-                      disabled={isUpdating}
+                      disabled={isUpdating || selectedInquiry.status === "NEW"}
                     >
                       Mark new
                     </Button>
@@ -441,7 +441,7 @@ export function AdminInquiriesClient({
                     <Button
                       variant="danger"
                       onClick={() => updateSelectedStatus("ARCHIVED")}
-                      disabled={isUpdating}
+                      disabled={isUpdating || selectedInquiry.status === "ARCHIVED"}
                     >
                       Archive
                     </Button>

@@ -8,6 +8,38 @@ export function peopleResponse(body: object, { status = 200 }: { status?: number
   return { body, status };
 }
 
+export async function listAdminHotels(database: Pick<PrismaClient, "hotel">, user: AuthUser | null) {
+  if (!user) {
+    return peopleResponse({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const isSuperAdmin = hasGlobalRole(user, "SUPER_ADMIN");
+  const hotelIds = [...new Set(user.hotelRoles.map(({ hotelId }) => hotelId))];
+  if (!isSuperAdmin && hotelIds.length === 0) {
+    return peopleResponse({ hotels: [] });
+  }
+
+  const hotels = await database.hotel.findMany({
+    where: {
+      deletedAt: null,
+      ...(isSuperAdmin ? {} : { id: { in: hotelIds } }),
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      city: true,
+      country: true,
+      timezone: true,
+      currency: true,
+      starRating: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return peopleResponse({ hotels });
+}
+
 function getGuestReadDenial(user: AuthUser | null, hotelId: string) {
   if (!user) {
     return peopleResponse({ error: "Unauthorized" }, { status: 401 });

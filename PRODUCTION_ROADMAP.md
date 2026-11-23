@@ -218,6 +218,7 @@ Legend:
   - [x] Inquiries and audit logs: public contact submissions, admin inquiry reads and updates, and hotel-scoped audit history.
     - [x] Disable the current inquiry status action and skip audit entries for unchanged updates.
     - [x] Keep inquiry status changes forward-only, with Archive as the final status.
+  - [x] Migrate the admin hotel selector list with session and hotel assignment checks.
 - [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration:
   - [x] Public hotel catalog GET routes proxy to NestJS when `NEST_API_BASE_URL` is configured, with a Next.js fallback until deployment configuration is available.
   - [x] Public availability GET and booking lookup POST routes proxy to NestJS when `NEST_API_BASE_URL` is configured.
@@ -239,6 +240,7 @@ Legend:
   - [x] Admin guest and staff reads proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Admin guest and staff writes proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Public inquiry submissions and admin inquiry/audit routes proxy to NestJS when `NEST_API_BASE_URL` is configured.
+  - [x] The admin hotel selector proxies to NestJS when `NEST_API_BASE_URL` is configured.
   - [ ] Remaining migrated domains
 - [ ] Remove migrated Next.js route handlers only after API contract and production verification.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
@@ -246,7 +248,7 @@ Legend:
 ## Next Recommended Work
 
 1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
-2. Verify inquiries and audit history through NestJS, then migrate the remaining hotel list, admin availability, and booking-detail endpoints.
+2. Verify the admin hotel selector through NestJS, then migrate admin availability and booking details.
 3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes

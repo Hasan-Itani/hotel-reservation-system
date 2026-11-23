@@ -1,57 +1,26 @@
 import { NextResponse } from "next/server";
+import { listAdminHotels } from "@/apps/api/src/admin-people/people-reads";
+import { getCurrentAuthUser } from "@/lib/auth";
+import { isNestApiProxyConfigured, proxyNestRequest } from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/guards";
-import { hasGlobalRole } from "@/lib/permissions";
+import { getSessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const auth = await requireAuth();
-
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  const user = auth.user;
-
-  if (hasGlobalRole(user, "SUPER_ADMIN")) {
-    const hotels = await prisma.hotel.findMany({
-      where: { deletedAt: null },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        city: true,
-        country: true,
-        timezone: true,
-        currency: true,
-        starRating: true,
-      },
-      orderBy: { createdAt: "asc" },
+export async function GET(request: Request) {
+  if (isNestApiProxyConfigured()) {
+    const sessionToken = await getSessionToken();
+    const proxied = await proxyNestRequest(request, "/admin/hotels", {
+      sessionToken: sessionToken ?? undefined,
+      rejectRedirects: true,
+      unavailableError: "Admin hotel list is unavailable. Please try again.",
     });
-
-    return NextResponse.json({ hotels });
+    if (proxied) return proxied;
   }
 
-  const hotelIds = [...new Set(user.hotelRoles.map((item) => item.hotelId))];
-
-  const hotels = await prisma.hotel.findMany({
-    where: {
-      id: { in: hotelIds },
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      city: true,
-      country: true,
-      timezone: true,
-      currency: true,
-      starRating: true,
-    },
-    orderBy: { createdAt: "asc" },
+  const result = await listAdminHotels(prisma, await getCurrentAuthUser());
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: { "Cache-Control": "private, no-store" },
   });
-
-  return NextResponse.json({ hotels });
 }

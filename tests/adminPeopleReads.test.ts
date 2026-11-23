@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { listAdminGuests, listAdminStaff, readAdminStaff } from "../apps/api/src/admin-people/people-reads";
+import { listAdminGuests, listAdminHotels, listAdminStaff, readAdminStaff } from "../apps/api/src/admin-people/people-reads";
 import type { AuthUser } from "../lib/permissions";
 
 const hotelId = "fixture-hotel";
@@ -18,6 +18,46 @@ const guest: AuthUser = {
 const withRole = (role: string) => ({
   ...guest,
   hotelRoles: [{ hotelId, hotelName: hotel.name, role }],
+});
+
+describe("admin hotel list", () => {
+  it("requires a session and scopes the list to assigned, non-deleted hotels", async () => {
+    const hotelRecord = {
+      ...hotel, slug: "fixture-hotel", city: "Beirut", country: "Lebanon",
+      timezone: "Asia/Beirut", currency: "USD", starRating: 5,
+    };
+    const queries: Prisma.HotelFindManyArgs[] = [];
+    const database = {
+      hotel: {
+        findMany: async (query: Prisma.HotelFindManyArgs) => {
+          queries.push(query);
+          return [hotelRecord];
+        },
+      },
+    } as unknown as Pick<PrismaClient, "hotel">;
+
+    assert.deepEqual(await listAdminHotels(database, null), { status: 401, body: { error: "Unauthorized" } });
+    assert.equal(queries.length, 0);
+    assert.deepEqual(await listAdminHotels(database, guest), { status: 200, body: { hotels: [] } });
+    assert.equal(queries.length, 0);
+    const staff = withRole("RECEPTIONIST");
+    assert.deepEqual(await listAdminHotels(database, {
+      ...staff, hotelRoles: [...staff.hotelRoles, ...withRole("MANAGER").hotelRoles],
+    }), { status: 200, body: { hotels: [hotelRecord] } });
+    assert.equal((await listAdminHotels(database, { ...guest, globalRoles: ["SUPER_ADMIN"] })).status, 200);
+
+    assert.deepEqual(queries.map(({ where }) => where), [
+      { deletedAt: null, id: { in: [hotelId] } },
+      { deletedAt: null },
+    ]);
+    for (const query of queries) {
+      assert.deepEqual(query.orderBy, { createdAt: "asc" });
+      assert.deepEqual(query.select, {
+        id: true, name: true, slug: true, city: true, country: true,
+        timezone: true, currency: true, starRating: true,
+      });
+    }
+  });
 });
 
 describe("admin guest and staff reads", () => {

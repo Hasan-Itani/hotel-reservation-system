@@ -2,18 +2,18 @@ import type { PrismaClient } from "@prisma/client";
 import { roundMoney } from "../booking-domain/money";
 import { canAccessHotel, hasGlobalRole, hasHotelRole, type AuthUser } from "../common/permissions";
 
-type PeopleReadResult = { status: number; body: object };
+export type PeopleResult = { status: number; body: object };
 
-function readResponse(body: object, { status = 200 }: { status?: number } = {}): PeopleReadResult {
+export function peopleResponse(body: object, { status = 200 }: { status?: number } = {}): PeopleResult {
   return { body, status };
 }
 
 function getGuestReadDenial(user: AuthUser | null, hotelId: string) {
   if (!user) {
-    return readResponse({ error: "Unauthorized" }, { status: 401 });
+    return peopleResponse({ error: "Unauthorized" }, { status: 401 });
   }
   if (!canAccessHotel(user, hotelId)) {
-    return readResponse({ error: "You do not have access to this hotel" }, { status: 403 });
+    return peopleResponse({ error: "You do not have access to this hotel" }, { status: 403 });
   }
   if (
     !hasGlobalRole(user, "SUPER_ADMIN") &&
@@ -21,7 +21,7 @@ function getGuestReadDenial(user: AuthUser | null, hotelId: string) {
     !hasHotelRole(user, hotelId, "MANAGER") &&
     !hasHotelRole(user, hotelId, "RECEPTIONIST")
   ) {
-    return readResponse(
+    return peopleResponse(
       { error: "Requires HOTEL_ADMIN, MANAGER, or RECEPTIONIST role for this hotel" },
       { status: 403 },
     );
@@ -29,12 +29,12 @@ function getGuestReadDenial(user: AuthUser | null, hotelId: string) {
   return null;
 }
 
-function getStaffReadDenial(user: AuthUser | null, hotelId: string) {
+export function getHotelAdminDenial(user: AuthUser | null, hotelId: string) {
   if (!user) {
-    return readResponse({ error: "Unauthorized" }, { status: 401 });
+    return peopleResponse({ error: "Unauthorized" }, { status: 401 });
   }
   if (!hasGlobalRole(user, "SUPER_ADMIN") && !hasHotelRole(user, hotelId, "HOTEL_ADMIN")) {
-    return readResponse({ error: "Requires role HOTEL_ADMIN for this hotel" }, { status: 403 });
+    return peopleResponse({ error: "Requires role HOTEL_ADMIN for this hotel" }, { status: 403 });
   }
   return null;
 }
@@ -158,14 +158,14 @@ export async function listAdminGuests(
   database: PrismaClient,
   user: AuthUser | null,
   hotelId: string,
-): Promise<PeopleReadResult> {
+): Promise<PeopleResult> {
   const denied = getGuestReadDenial(user, hotelId);
   if (denied) return denied;
 
   const hotel = await getHotelById(database, hotelId);
 
   if (!hotel) {
-    return readResponse({ error: "Hotel not found" }, { status: 404 });
+    return peopleResponse({ error: "Hotel not found" }, { status: 404 });
   }
 
   const reservations = await database.reservation.findMany({
@@ -330,7 +330,7 @@ export async function listAdminGuests(
       return bDate - aDate;
     });
 
-  return readResponse({
+  return peopleResponse({
     hotelId: hotel.id,
     hotelName: hotel.name,
     guests,
@@ -341,19 +341,19 @@ export async function listAdminStaff(
   database: PrismaClient,
   user: AuthUser | null,
   hotelId: string,
-): Promise<PeopleReadResult> {
-  const denied = getStaffReadDenial(user, hotelId);
+): Promise<PeopleResult> {
+  const denied = getHotelAdminDenial(user, hotelId);
   if (denied) return denied;
 
   const hotel = await getHotelById(database, hotelId);
 
   if (!hotel) {
-    return readResponse({ error: "Hotel not found" }, { status: 404 });
+    return peopleResponse({ error: "Hotel not found" }, { status: 404 });
   }
 
   const assignments = await getStaffAssignments(database, hotelId);
 
-  return readResponse({
+  return peopleResponse({
     hotelId: hotel.id,
     hotelName: hotel.name,
     staff: mapStaff(assignments),
@@ -365,25 +365,25 @@ export async function readAdminStaff(
   user: AuthUser | null,
   hotelId: string,
   staffId: string,
-): Promise<PeopleReadResult> {
-  const denied = getStaffReadDenial(user, hotelId);
+): Promise<PeopleResult> {
+  const denied = getHotelAdminDenial(user, hotelId);
   if (denied) return denied;
 
   const hotel = await getHotelById(database, hotelId);
 
   if (!hotel) {
-    return readResponse({ error: "Hotel not found" }, { status: 404 });
+    return peopleResponse({ error: "Hotel not found" }, { status: 404 });
   }
 
   const assignments = await getStaffAssignments(database, hotelId, staffId);
   const staff = mapSingleStaff(assignments);
 
   if (!staff) {
-    return readResponse(
+    return peopleResponse(
       { error: "Staff member not found for this hotel" },
       { status: 404 },
     );
   }
 
-  return readResponse({ staff });
+  return peopleResponse({ staff });
 }

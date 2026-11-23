@@ -212,9 +212,9 @@ Legend:
     - [x] Migrate reservation and payment list/detail reads, including reservation filters and hotel-scoped access.
     - [x] Migrate reservation writes and lifecycle actions with hotel access checks, inventory locking, and audit events.
     - [x] Migrate admin mock payment writes and status changes with transactional balance checks and audit events.
-  - [~] Guests and staff
+  - [x] Guests and staff
     - [x] Migrate the guest list and staff list/detail reads with hotel-specific role checks.
-    - [ ] Migrate guest account unlock and staff writes.
+    - [x] Migrate guest account unlock and staff writes with audit and last-admin protections.
   - Inquiries and audit logs
 - [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration:
   - [x] Public hotel catalog GET routes proxy to NestJS when `NEST_API_BASE_URL` is configured, with a Next.js fallback until deployment configuration is available.
@@ -235,6 +235,7 @@ Legend:
   - [x] Admin reservation writes proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Admin payment writes proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [x] Admin guest and staff reads proxy to NestJS when `NEST_API_BASE_URL` is configured.
+  - [x] Admin guest and staff writes proxy to NestJS when `NEST_API_BASE_URL` is configured.
   - [ ] Remaining migrated domains
 - [ ] Remove migrated Next.js route handlers only after API contract and production verification.
 - [ ] Move the Next.js app into `apps/web` after all API routes are migrated and deployment settings are updated.
@@ -242,7 +243,7 @@ Legend:
 ## Next Recommended Work
 
 1. Set `NEST_API_BASE_URL` in the Next.js production environment and verify the catalog proxy against the deployed NestJS API.
-2. Verify admin guest and staff reads through NestJS, then migrate guest account unlock and staff writes.
+2. Verify guest account unlock and staff writes through NestJS, then migrate inquiries and audit logs.
 3. Add screenshots to the README.
 
 ## Testing Checklist After Auth Changes

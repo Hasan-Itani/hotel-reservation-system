@@ -23,7 +23,6 @@ import {
 } from "../apps/api/src/booking-domain/public-payment-schema";
 export { mockPaymentCreateSchema, publicBookingPaymentSchema, publicBookingReservationParamSchema };
 import {
-  dateOnlySchema,
   publicReservationCreateSchema,
   reservationRoomInputSchema,
 } from "../apps/api/src/booking-domain/public-reservation-schema";
@@ -120,20 +119,7 @@ export type HotelStaffCreateInput = z.infer<typeof hotelStaffCreateSchema>;
 export type HotelStaffUpdateInput = z.infer<typeof hotelStaffUpdateSchema>;
 
 
-export const availabilityQuerySchema = z
-  .object({
-    checkInDate: dateOnlySchema,
-    checkOutDate: dateOnlySchema,
-    adults: z.coerce.number().int().min(1).max(20).optional(),
-    children: z.coerce.number().int().min(0).max(20).optional(),
-  })
-  .strict()
-  .refine((data) => data.checkOutDate > data.checkInDate, {
-    message: "checkOutDate must be after checkInDate",
-    path: ["checkOutDate"],
-  });
-
-export type AvailabilityQueryInput = z.infer<typeof availabilityQuerySchema>;
+export { availabilityQuerySchema, type AvailabilityQueryInput } from "../apps/api/src/booking-domain/availability-query";
 export type ReservationCreateInput = z.infer<typeof reservationCreateSchema>;
 export type PublicReservationCreateInput = z.infer<
   typeof publicReservationCreateSchema

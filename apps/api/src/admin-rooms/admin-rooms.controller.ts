@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Headers, Inject, Param, Patch, Post, Res } from "@nestjs/common";
-import type { FastifyReply } from "fastify";
+import { Body, Controller, Delete, Get, Headers, Inject, Param, Patch, Post, Req, Res } from "@nestjs/common";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { canAccessHotel, type AuthUser } from "../common/permissions";
 import { PrismaService } from "../database/prisma.service";
 import { SessionsService } from "../sessions/sessions.service";
+import { getAdminAvailability } from "./room-availability";
 import { formatRoomTypeResponse, getRoomById, getRoomTypeById, listRooms, listRoomTypes } from "./room-reads";
 
 import { createRoom, deleteRoom, updateRoom } from "./room-writes";
@@ -15,6 +16,20 @@ export class AdminRoomsController {
     @Inject(SessionsService) private readonly sessions: SessionsService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
+
+  @Get("availability")
+  async availability(
+    @Param("hotelId") hotelId: string,
+    @Headers("authorization") authorization: string | undefined,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    reply.header("Cache-Control", "private, no-store");
+    const session = await this.sessions.getCurrentSession(authorization);
+    const query = new URL(request.url, "http://localhost").searchParams;
+    const result = await getAdminAvailability(this.prisma, session?.user ?? null, hotelId, query);
+    return reply.status(result.status).send(result.body);
+  }
 
   @Get("rooms")
   rooms(

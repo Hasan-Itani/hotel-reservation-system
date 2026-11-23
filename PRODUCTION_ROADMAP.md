@@ -202,6 +202,7 @@ Legend:
   - [x] Rooms and room types
     - [x] Migrate room and room-type list and detail endpoints with hotel-scoped authorization.
     - [x] Migrate room and room-type writes, audit logging, and lifecycle rules.
+    - [x] Fix the proxy for bodyless room and room-type deletion requests and cover it with a Fastify regression test.
   - Reservations and payments
   - Guests and staff
   - Inquiries and audit logs

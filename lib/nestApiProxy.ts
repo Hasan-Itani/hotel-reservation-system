@@ -1,6 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+import { getNestProxyBody } from "./nestProxyBody";
 
 const FORWARDED_REQUEST_HEADERS = [
   "content-type",
@@ -102,9 +103,7 @@ export async function proxyNestRequest(
   try {
     const method = request.method.toUpperCase();
     const headers = buildRequestHeaders(request);
-    if (options.jsonBody !== undefined) {
-      headers.set("content-type", "application/json");
-    }
+    const body = await getNestProxyBody(request, method, headers, options.jsonBody);
     if (options.sessionToken) {
       headers.set("authorization", `Bearer ${options.sessionToken}`);
     }
@@ -115,11 +114,7 @@ export async function proxyNestRequest(
       headers,
       signal: options.signal,
       ...(usesSession || options.rejectRedirects ? { redirect: "error" as const } : {}),
-      ...(method === "GET" || method === "HEAD"
-        ? {}
-        : {
-            body: options.jsonBody ?? await request.text(),
-          }),
+      body,
     });
 
     if (options.receiveSession && response.ok) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatApiError } from "@/lib/frontend/api-error";
 import type {
   FormEvent,
   InputHTMLAttributes,
@@ -121,23 +122,7 @@ function getFriendlyBookingError(response: Response, data: unknown) {
     return "Too many booking attempts. Please wait a few minutes and try again.";
   }
 
-  if (
-    data &&
-    typeof data === "object" &&
-    "error" in data &&
-    typeof data.error === "string" &&
-    data.error.trim()
-  ) {
-    const rawMessage = data.error.trim();
-
-    if (/internal server error/i.test(rawMessage)) {
-      return fallbackMessage;
-    }
-
-    return rawMessage;
-  }
-
-  return fallbackMessage;
+  return formatApiError(response.status, data, fallbackMessage);
 }
 
 function FormInput({

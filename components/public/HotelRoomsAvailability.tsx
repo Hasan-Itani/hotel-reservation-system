@@ -1,5 +1,6 @@
 "use client";
 
+import { formatApiError } from "@/lib/frontend/api-error";
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
@@ -204,7 +205,7 @@ export function HotelRoomsAvailability({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Unable to check availability");
+        setError(formatApiError(response.status, data, "Unable to check availability."));
         return;
       }
 

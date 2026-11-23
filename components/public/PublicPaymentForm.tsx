@@ -1,5 +1,6 @@
 "use client";
 
+import { formatApiError } from "@/lib/frontend/api-error";
 import type { FormEvent, InputHTMLAttributes } from "react";
 import { useState } from "react";
 import Link from "next/link";
@@ -241,7 +242,7 @@ export function PublicPaymentForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Unable to process payment");
+        setError(formatApiError(response.status, data, "Unable to process payment."));
 
         if (data.paymentSummary) {
           setPaymentSummary(data.paymentSummary);

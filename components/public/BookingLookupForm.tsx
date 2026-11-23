@@ -1,5 +1,6 @@
 "use client";
 
+import { formatApiError } from "@/lib/frontend/api-error";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicBookingLookupResponse } from "@/lib/frontend/types";
@@ -66,7 +67,7 @@ export function BookingLookupForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Booking not found");
+        setError(formatApiError(response.status, data, "Booking not found."));
         return;
       }
 

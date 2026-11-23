@@ -1,5 +1,6 @@
 "use client";
 
+import { formatApiError } from "@/lib/frontend/api-error";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -131,7 +132,7 @@ export function AdminInquiriesClient({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Unable to update inquiry");
+        setError(formatApiError(response.status, data, "Unable to update inquiry."));
         return;
       }
 

@@ -108,6 +108,7 @@ Legend:
 ## Phase 6: Admin Dashboard Upgrade
 
 - [x] Bring room deletion confirmation into view on every click and show feedback when a room is deleted.
+- [x] Show field-level validation and clearer API errors in admin and guest forms.
 
 - [ ] Add admin overview stats:
   - Today's check-ins

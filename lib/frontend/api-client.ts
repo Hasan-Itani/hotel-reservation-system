@@ -1,4 +1,4 @@
-import type { ApiErrorResponse } from "@/lib/frontend/types";
+import { readApiError } from "./api-error";
 
 export class FrontendApiError extends Error {
   status: number;
@@ -7,15 +7,6 @@ export class FrontendApiError extends Error {
     super(message);
     this.name = "FrontendApiError";
     this.status = status;
-  }
-}
-
-async function readError(response: Response) {
-  try {
-    const data = (await response.json()) as Partial<ApiErrorResponse>;
-    return data.error || `Request failed with status ${response.status}`;
-  } catch {
-    return `Request failed with status ${response.status}`;
   }
 }
 
@@ -33,7 +24,7 @@ export async function clientFetchJson<T>(
   });
 
   if (!response.ok) {
-    throw new FrontendApiError(await readError(response), response.status);
+    throw new FrontendApiError(await readApiError(response), response.status);
   }
 
   return (await response.json()) as T;

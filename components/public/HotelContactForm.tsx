@@ -1,5 +1,6 @@
 "use client";
 
+import { formatApiError } from "@/lib/frontend/api-error";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import type {
@@ -104,7 +105,7 @@ export function HotelContactForm({ hotelSlug }: HotelContactFormProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Unable to send contact message");
+        setError(formatApiError(response.status, data, "Unable to send contact message."));
         return;
       }
 

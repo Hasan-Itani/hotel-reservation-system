@@ -1,7 +1,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
-import type { ApiErrorResponse } from "@/lib/frontend/types";
+import { readApiError } from "./api-error";
 
 export class ServerApiError extends Error {
   status: number;
@@ -34,15 +34,6 @@ async function getForwardedCookieHeader() {
   return headerStore.get("cookie") || "";
 }
 
-async function readError(response: Response) {
-  try {
-    const data = (await response.json()) as Partial<ApiErrorResponse>;
-    return data.error || `Request failed with status ${response.status}`;
-  } catch {
-    return `Request failed with status ${response.status}`;
-  }
-}
-
 export async function serverFetchJson<T>(
   path: string,
   init: RequestInit = {}
@@ -60,7 +51,7 @@ export async function serverFetchJson<T>(
   });
 
   if (!response.ok) {
-    throw new ServerApiError(await readError(response), response.status);
+    throw new ServerApiError(await readApiError(response), response.status);
   }
 
   return (await response.json()) as T;

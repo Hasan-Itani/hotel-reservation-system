@@ -1,8 +1,12 @@
-import { Body, Controller, Inject, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Inject, Param, Post, Req, Res } from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { publicBookingReservationParamSchema } from "../booking-domain/public-payment-schema";
 import { RateLimitResult, RateLimitService } from "../common/rate-limit/rate-limit.service";
 import { PublicBookingsService } from "./public-bookings.service";
+import { PrismaService } from "../database/prisma.service";
+import { SessionsService } from "../sessions/sessions.service";
+import { bookingDetailsRateLimit, readBookingDetails } from "./booking-details";
 
 function getHeaderValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -45,7 +49,38 @@ export class PublicBookingsController {
     private readonly publicBookings: PublicBookingsService,
     @Inject(RateLimitService)
     private readonly rateLimit: RateLimitService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(SessionsService) private readonly sessions: SessionsService,
   ) {}
+
+  @Get(":reservationNumber")
+  async bookingDetails(
+    @Param("reservationNumber") reservationNumber: string,
+    @Headers("authorization") authorization: string | undefined,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    reply.header("Cache-Control", "private, no-store");
+    const parsed = publicBookingReservationParamSchema.safeParse({ reservationNumber });
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid reservation number",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const limiter = await this.rateLimit.check(bookingDetailsRateLimit(getClientIp(request)));
+    this.setRateLimitHeaders(reply, limiter);
+    if (!limiter.ok) {
+      reply.header("Retry-After", String(limiter.retryAfterSeconds));
+      return reply.status(429).send({ error: "Too many booking detail requests. Please try again later." });
+    }
+
+    const session = await this.sessions.getCurrentSession(authorization);
+    const email = new URL(request.url, "http://localhost").searchParams.get("guestEmail");
+    const result = await readBookingDetails(this.prisma, parsed.data.reservationNumber, session?.user.id, email);
+    return reply.status(result.status).send(result.body);
+  }
 
   @Post("lookup")
   async lookupBooking(

@@ -1,147 +1,50 @@
 import { NextResponse } from "next/server";
+import { publicBookingReservationParamSchema } from "@/apps/api/src/booking-domain/public-payment-schema";
+import { bookingDetailsRateLimit, readBookingDetails } from "@/apps/api/src/public-bookings/booking-details";
 import { getCurrentAuthUser } from "@/lib/auth";
 import { getClientIp } from "@/lib/getClientIp";
+import { isNestApiProxyConfigured, proxyNestRequest } from "@/lib/nestApiProxy";
 import { prisma } from "@/lib/prisma";
-import {
-  publicBookingSelect,
-  serializePublicBooking,
-} from "@/lib/publicBookingSerializer";
 import { rateLimit, rateLimitHeaders } from "@/lib/rateLimit";
-import {
-  publicBookingAccessQuerySchema,
-  publicBookingReservationParamSchema,
-} from "@/lib/validators";
+import { getSessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ reservationNumber: string }> },
+  { params }: { params: Promise<{ reservationNumber: string }> },
 ) {
-  const routeParams = await context.params;
-
-  const parsedParams =
-    publicBookingReservationParamSchema.safeParse(routeParams);
-
-  if (!parsedParams.success) {
+  const headers = { "Cache-Control": "private, no-store" };
+  const parsed = publicBookingReservationParamSchema.safeParse(await params);
+  if (!parsed.success) {
     return NextResponse.json(
-      {
-        error: "Invalid reservation number",
-        details: parsedParams.error.flatten(),
-      },
-      { status: 400 },
+      { error: "Invalid reservation number", details: parsed.error.flatten() },
+      { status: 400, headers },
     );
   }
 
-  const ip = getClientIp(request);
+  const { reservationNumber } = parsed.data;
+  if (isNestApiProxyConfigured()) {
+    const sessionToken = await getSessionToken();
+    const proxied = await proxyNestRequest(request, `/public/bookings/${encodeURIComponent(reservationNumber)}`, {
+      sessionToken: sessionToken ?? undefined,
+      rejectRedirects: true,
+      unavailableError: "Booking details are unavailable. Please try again.",
+    });
+    if (proxied) return proxied;
+  }
 
-  const limiter = await rateLimit({
-    key: `booking-details:${ip}`,
-    windowMs: 10 * 60 * 1000,
-    maxRequests: 10,
-  });
-
+  const limiter = await rateLimit(bookingDetailsRateLimit(getClientIp(request)));
+  const responseHeaders = { ...headers, ...rateLimitHeaders(limiter) };
   if (!limiter.ok) {
     return NextResponse.json(
-      {
-        error: "Too many booking detail requests. Please try again later.",
-      },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(limiter.retryAfterSeconds),
-          ...rateLimitHeaders(limiter),
-        },
-      },
+      { error: "Too many booking detail requests. Please try again later." },
+      { status: 429, headers: { ...responseHeaders, "Retry-After": String(limiter.retryAfterSeconds) } },
     );
   }
 
-  const currentUser = await getCurrentAuthUser();
-  const url = new URL(request.url);
-  const rawGuestEmail = url.searchParams.get("guestEmail");
-
-  let guestEmail: string | null = null;
-
-  if (rawGuestEmail) {
-    const parsedQuery = publicBookingAccessQuerySchema.safeParse({
-      guestEmail: rawGuestEmail,
-    });
-
-    if (!parsedQuery.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid guest email",
-          details: parsedQuery.error.flatten(),
-        },
-        {
-          status: 400,
-          headers: rateLimitHeaders(limiter),
-        },
-      );
-    }
-
-    guestEmail = parsedQuery.data.guestEmail;
-  }
-
-  if (!currentUser && !guestEmail) {
-    return NextResponse.json(
-      {
-        error: "guestEmail is required unless you are signed in",
-      },
-      {
-        status: 400,
-        headers: rateLimitHeaders(limiter),
-      },
-    );
-  }
-
-  const { reservationNumber } = parsedParams.data;
-
-  const accessFilters = [
-    ...(currentUser ? [{ userId: currentUser.id }] : []),
-    ...(guestEmail ? [{ guestEmail }] : []),
-  ];
-
-  try {
-    const reservation = await prisma.reservation.findFirst({
-      where: {
-        reservationNumber,
-        hotel: {
-          deletedAt: null,
-        },
-        OR: accessFilters,
-      },
-      select: publicBookingSelect,
-    });
-
-    if (!reservation) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        {
-          status: 404,
-          headers: rateLimitHeaders(limiter),
-        },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        booking: serializePublicBooking(reservation),
-      },
-      {
-        status: 200,
-        headers: rateLimitHeaders(limiter),
-      },
-    );
-  } catch (error) {
-    console.error("Public booking details error:", error);
-
-    return NextResponse.json(
-      { error: "Failed to fetch booking" },
-      {
-        status: 500,
-        headers: rateLimitHeaders(limiter),
-      },
-    );
-  }
+  const user = await getCurrentAuthUser();
+  const email = new URL(request.url).searchParams.get("guestEmail");
+  const result = await readBookingDetails(prisma, reservationNumber, user?.id, email);
+  return NextResponse.json(result.body, { status: result.status, headers: responseHeaders });
 }

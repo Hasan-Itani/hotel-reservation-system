@@ -17,11 +17,12 @@ import {
 export { roomCreateSchema, roomUpdateSchema, roomTypeCreateSchema, roomTypeUpdateSchema };
 import {
   mockPaymentCreateSchema,
+  publicBookingAccessQuerySchema,
   publicBookingPaymentSchema,
   publicBookingReservationParamSchema,
   reservationNumberSchema,
 } from "../apps/api/src/booking-domain/public-payment-schema";
-export { mockPaymentCreateSchema, publicBookingPaymentSchema, publicBookingReservationParamSchema };
+export { mockPaymentCreateSchema, publicBookingAccessQuerySchema, publicBookingPaymentSchema, publicBookingReservationParamSchema };
 import {
   publicReservationCreateSchema,
   reservationRoomInputSchema,
@@ -137,13 +138,6 @@ export const publicBookingLookupSchema = z
     guestEmail: z.string().trim().toLowerCase().email(),
   })
   .strict();
-
-export const publicBookingAccessQuerySchema = z
-  .object({
-    guestEmail: z.string().trim().toLowerCase().email(),
-  })
-  .strict();
-
 
 export type PublicBookingReservationParamInput = z.infer<
   typeof publicBookingReservationParamSchema

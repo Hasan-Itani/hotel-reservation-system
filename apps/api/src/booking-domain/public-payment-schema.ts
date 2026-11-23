@@ -59,6 +59,10 @@ export const publicBookingReservationParamSchema = z
   })
   .strict();
 
+export const publicBookingAccessQuerySchema = z
+  .object({ guestEmail: z.string().trim().toLowerCase().email() })
+  .strict();
+
 export const publicBookingPaymentSchema = mockPaymentCreateSchema
   .extend({
     guestEmail: z.string().trim().toLowerCase().email().optional(),

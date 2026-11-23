@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { listHotelAudit } from "../apps/api/src/inquiries/audit-reads";
 import { createPublicHotelInquiry, listAdminInquiries, updateAdminInquiry } from "../apps/api/src/inquiries/inquiry-actions";
+import { canAdvanceInquiryStatus } from "../apps/api/src/inquiries/inquiry-status";
 import { buildHotelAuditVisibilityWhere } from "../lib/auditEvents";
 import type { AuthUser } from "../lib/permissions";
 
@@ -63,7 +64,7 @@ describe("hotel inquiries and audit activity", () => {
           return { id: inquiryId, status: "NEW", adminNote: null, subject: "Fixture" };
         },
         update: async ({ where, data }: Prisma.HotelInquiryUpdateArgs) => {
-          assert.deepEqual(where, scope);
+          assert.deepEqual(where, { ...scope, status: "NEW", adminNote: null });
           assert.equal(data.status, "REPLIED");
           assert.equal(data.adminNote, "Staff follow-up");
           assert.ok(data.readAt instanceof Date);
@@ -144,5 +145,55 @@ describe("hotel inquiries and audit activity", () => {
     const result = await updateAdminInquiry(database, staff, hotelId, inquiryId, async () => ({ status: "READ", adminNote: "New note" }));
     assert.equal(result.status, 200);
     assert.equal(Reflect.get(result.body, "inquiry").adminNote, "New note");
+  });
+
+  it("allows only forward actions and prevents backward writes", async () => {
+    const statuses = ["NEW", "READ", "REPLIED", "ARCHIVED"] as const;
+    const allowed = [
+      ["READ", "REPLIED", "ARCHIVED"],
+      ["REPLIED", "ARCHIVED"],
+      ["ARCHIVED"],
+      [],
+    ];
+    for (const [index, currentStatus] of statuses.entries()) {
+      assert.deepEqual(statuses.filter((next) => canAdvanceInquiryStatus(currentStatus, next)), allowed[index]);
+      const tx = {
+        hotelInquiry: {
+          findFirst: async () => ({ id: inquiryId, status: currentStatus, adminNote: null }),
+          update: async () => assert.fail("A backward status change must never write"),
+        },
+        auditLog: { create: async () => assert.fail("A backward status change must never be audited") },
+      };
+      const database = { $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx) } as unknown as PrismaClient;
+      for (const nextStatus of statuses.slice(0, index)) {
+        const result = await updateAdminInquiry(database, staff, hotelId, inquiryId, async () => ({ status: nextStatus }));
+        assert.equal(result.status, 409);
+      }
+    }
+  });
+
+  it("preserves the first read timestamp upon reply and rejects a concurrent status change", async () => {
+    const readAt = new Date("2026-11-23T14:00:00Z");
+    const inquiry = { id: inquiryId, status: "READ", adminNote: null, subject: "Fixture", readAt };
+    let conflict = false;
+    let audits = 0;
+    const tx = {
+      hotelInquiry: {
+        findFirst: async () => inquiry,
+        update: async ({ where, data }: Prisma.HotelInquiryUpdateArgs) => {
+          assert.deepEqual(where, { id: inquiryId, hotelId, status: "READ", adminNote: null });
+          assert.equal(data.readAt, readAt);
+          if (conflict) throw new Prisma.PrismaClientKnownRequestError("Stale inquiry", { code: "P2025", clientVersion: "test" });
+          return { ...inquiry, ...data };
+        },
+      },
+      auditLog: { create: async () => { audits += 1; } },
+    };
+    const database = { $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx) } as unknown as PrismaClient;
+    const reply = () => updateAdminInquiry(database, staff, hotelId, inquiryId, async () => ({ status: "REPLIED" }));
+    assert.equal((await reply()).status, 200);
+    conflict = true;
+    assert.equal((await reply()).status, 409);
+    assert.equal(audits, 1);
   });
 });

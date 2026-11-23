@@ -1,5 +1,6 @@
 "use client";
 
+import { canAdvanceInquiryStatus } from "@/apps/api/src/inquiries/inquiry-status";
 import { formatApiError } from "@/lib/frontend/api-error";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
@@ -154,7 +155,7 @@ export function AdminInquiriesClient({
   }
 
   function updateSelectedStatus(status: HotelInquiryStatus) {
-    if (!selectedInquiry || selectedInquiry.status === status) return;
+    if (!selectedInquiry || !canAdvanceInquiryStatus(selectedInquiry.status, status)) return;
 
     updateInquiry({
       inquiryId: selectedInquiry.id,
@@ -414,38 +415,27 @@ export function AdminInquiriesClient({
                   </Button>
 
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => updateSelectedStatus("READ")}
-                      disabled={isUpdating || selectedInquiry.status === "READ"}
-                    >
-                      Mark read
-                    </Button>
-
-                    <Button
-                      variant="secondary"
-                      onClick={() => updateSelectedStatus("REPLIED")}
-                      disabled={isUpdating || selectedInquiry.status === "REPLIED"}
-                    >
-                      Mark replied
-                    </Button>
-
-                    <Button
-                      variant="secondary"
-                      onClick={() => updateSelectedStatus("NEW")}
-                      disabled={isUpdating || selectedInquiry.status === "NEW"}
-                    >
-                      Mark new
-                    </Button>
-
-                    <Button
-                      variant="danger"
-                      onClick={() => updateSelectedStatus("ARCHIVED")}
-                      disabled={isUpdating || selectedInquiry.status === "ARCHIVED"}
-                    >
-                      Archive
-                    </Button>
+                    {canAdvanceInquiryStatus(selectedInquiry.status, "READ") ? (
+                      <Button variant="secondary" onClick={() => updateSelectedStatus("READ")} disabled={isUpdating}>
+                        Mark read
+                      </Button>
+                    ) : null}
+                    {canAdvanceInquiryStatus(selectedInquiry.status, "REPLIED") ? (
+                      <Button variant="secondary" onClick={() => updateSelectedStatus("REPLIED")} disabled={isUpdating}>
+                        Mark replied
+                      </Button>
+                    ) : null}
+                    {canAdvanceInquiryStatus(selectedInquiry.status, "ARCHIVED") ? (
+                      <Button variant="danger" onClick={() => updateSelectedStatus("ARCHIVED")} disabled={isUpdating}>
+                        Archive
+                      </Button>
+                    ) : null}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedInquiry.status === "ARCHIVED"
+                      ? "This inquiry is closed and remains available in history."
+                      : "Archive closes this inquiry without deleting it."}
+                  </p>
                 </div>
               </div>
             )}

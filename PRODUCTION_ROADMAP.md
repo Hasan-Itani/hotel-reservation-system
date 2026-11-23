@@ -217,6 +217,7 @@ Legend:
     - [x] Migrate guest account unlock and staff writes with audit and last-admin protections.
   - [x] Inquiries and audit logs: public contact submissions, admin inquiry reads and updates, and hotel-scoped audit history.
     - [x] Disable the current inquiry status action and skip audit entries for unchanged updates.
+    - [x] Keep inquiry status changes forward-only, with Archive as the final status.
 - [ ] Change Next.js API routes to temporary NestJS proxies during each compatible endpoint migration:
   - [x] Public hotel catalog GET routes proxy to NestJS when `NEST_API_BASE_URL` is configured, with a Next.js fallback until deployment configuration is available.
   - [x] Public availability GET and booking lookup POST routes proxy to NestJS when `NEST_API_BASE_URL` is configured.

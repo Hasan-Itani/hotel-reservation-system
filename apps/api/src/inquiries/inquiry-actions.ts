@@ -1,8 +1,9 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
 import { createAuditLog } from "../common/audit-log";
 import { canAccessHotel, type AuthUser } from "../common/permissions";
 import { adminHotelInquiryUpdateSchema, publicHotelInquiryCreateSchema } from "./inquiry-schemas";
 import { activityResponse, type ActivityResult } from "./activity-response";
+import { canAdvanceInquiryStatus } from "./inquiry-status";
 
 const adminInquirySelect = {
   id: true,
@@ -118,25 +119,26 @@ export async function updateAdminInquiry(
 
     const { status, adminNote } = parsed.data;
     if (status !== undefined && status !== existingInquiry.status) {
+      if (!canAdvanceInquiryStatus(existingInquiry.status, status)) {
+        return activityResponse(
+          { error: "Inquiry status can only move forward. Archived inquiries cannot be reopened." },
+          { status: 409 },
+        );
+      }
       updateData.status = status;
+      const now = new Date();
 
-      if (parsed.data.status === "READ") {
-        updateData.readAt = new Date();
+      if (status === "READ") {
+        updateData.readAt = existingInquiry.readAt ?? now;
       }
 
-      if (parsed.data.status === "REPLIED") {
-        updateData.readAt = new Date();
-        updateData.repliedAt = new Date();
+      if (status === "REPLIED") {
+        updateData.readAt = existingInquiry.readAt ?? now;
+        updateData.repliedAt = now;
       }
 
-      if (parsed.data.status === "ARCHIVED") {
-        updateData.archivedAt = new Date();
-      }
-
-      if (parsed.data.status === "NEW") {
-        updateData.readAt = null;
-        updateData.repliedAt = null;
-        updateData.archivedAt = null;
+      if (status === "ARCHIVED") {
+        updateData.archivedAt = now;
       }
     }
 
@@ -152,6 +154,8 @@ export async function updateAdminInquiry(
       where: {
         id: inquiryId,
         hotelId,
+        status: existingInquiry.status,
+        adminNote: existingInquiry.adminNote,
       },
       data: updateData,
       select: adminInquirySelect,
@@ -175,6 +179,14 @@ export async function updateAdminInquiry(
       message: "Inquiry updated",
       inquiry,
     });
+  }).catch((error: unknown) => {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return activityResponse(
+        { error: "This inquiry changed while you were editing it. Refresh and try again." },
+        { status: 409 },
+      );
+    }
+    throw error;
   });
 }
 

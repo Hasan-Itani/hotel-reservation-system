@@ -557,8 +557,8 @@ export function PaymentsClient({
                   </section>
 
                   <section>
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0 flex-[1_1_14rem]">
                         <p className="text-sm font-bold text-foreground">
                           Add Mock Card Payment
                         </p>
@@ -569,6 +569,7 @@ export function PaymentsClient({
                       </div>
 
                       <Button
+                        className="shrink-0 whitespace-nowrap"
                         onClick={() => setIsFormOpen((current) => !current)}
                         disabled={
                           !canAcceptNewPayment(paymentReservation.status) ||

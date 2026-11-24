@@ -11,6 +11,7 @@ import { SessionsService } from "../sessions/sessions.service";
 import { listAdminReservations, listAdminReservationPayments, readAdminReservation, readAdminReservationPayment } from "./reservation-reads";
 
 import { createAdminMockPayment, updateAdminPaymentStatus, type PaymentWriteResult } from "./payment-writes";
+import { notifyCheckoutSummary } from "./checkout-summary";
 import { notifyMockRefund } from "./refund-notice";
 import { createAdminReservation, updateAdminReservation } from "./reservation-writes";
 import type { ReservationWriteResult } from "./reservation-write-access";
@@ -92,9 +93,10 @@ export class AdminReservationsController {
     @Body() body: unknown,
     @Res() reply: FastifyReply,
   ) {
-    return this.write(authorization, reply, (user) =>
-      updateAdminReservation(this.prisma, user, hotelId, reservationId, async () => body),
-    );
+    return this.write(authorization, reply, async (user) => {
+      const result = await updateAdminReservation(this.prisma, user, hotelId, reservationId, async () => body);
+      return notifyCheckoutSummary(this.prisma, { hotelId, reservationId }, result, getResendSender(this.config));
+    });
   }
 
   @Post(":reservationId/payments")

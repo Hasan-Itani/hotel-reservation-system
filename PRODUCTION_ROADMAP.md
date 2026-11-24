@@ -77,7 +77,9 @@ Legend:
 - [x] Send a separate receipt when a new payment clears a reopened balance after the booking confirmation was already attempted.
 - [x] Verify repayment receipt delivery after a full mock refund.
 - [x] Hide refund actions for completed stays and reject them in the API. Keep cancelled and no-show reservations eligible.
-- [ ] Add a checkout receipt or folio and a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
+- [x] Send a checkout summary with the stay dates, recorded payments and full refunds, and the balance when known. Checkout does not charge the guest.
+- [ ] Verify checkout summary delivery in a controlled inbox.
+- [ ] Add a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
 - [ ] Cancellation email.
 - [ ] Contact inquiry received email.
 - [ ] Admin inquiry alert email.

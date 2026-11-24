@@ -137,8 +137,13 @@ describe("admin reservation writes", () => {
     assert.equal((await update({ action: "CHECK_IN", roomAssignments: [{ reservationRoomId, roomId }] })).status, 200);
     assert.equal(status, "CHECKED_IN");
     assert.equal(assignedRoom, roomId);
-    assert.equal((await update({ action: "CHECK_OUT" })).status, 200);
+    const checkout = await update({ action: "CHECK_OUT" });
+    assert.equal(checkout.status, 200);
+    assert.equal(checkout.checkoutCompleted, true);
     assert.equal(status, "CHECKED_OUT");
+    const repeat = await update({ action: "CHECK_OUT" });
+    assert.equal(repeat.status, 409);
+    assert.equal(repeat.checkoutCompleted, undefined);
     assert.deepEqual(roomStatuses, ["OCCUPIED", "AVAILABLE"]);
     assert.deepEqual(auditActions, ["RESERVATION_CHECKED_IN", "RESERVATION_CHECKED_OUT"]);
   });

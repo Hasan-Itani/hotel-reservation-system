@@ -272,13 +272,15 @@ export async function createAdminReservation(
   }
 }
 
+export type ReservationUpdateResult = ReservationWriteResult & { checkoutCompleted?: true };
+
 export async function updateAdminReservation(
   database: PrismaClient,
   user: AuthUser | null,
   hotelId: string,
   reservationId: string,
   readBody: () => Promise<unknown>,
-): Promise<ReservationWriteResult> {
+): Promise<ReservationUpdateResult> {
   const access = requireReservationWriteAccess(user, hotelId);
   if (!access.ok) return access.result;
 
@@ -812,10 +814,10 @@ export async function updateAdminReservation(
         return updatedReservation;
       });
 
-      return writeResponse({
-        message: "Reservation checked out successfully",
-        reservation,
-      });
+      return {
+        ...writeResponse({ message: "Reservation checked out successfully", reservation }),
+        checkoutCompleted: true,
+      };
     } catch (error) {
       if (
         error instanceof Error &&

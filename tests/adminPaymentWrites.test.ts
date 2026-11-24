@@ -24,7 +24,7 @@ const card = {
   cvv: "123",
 };
 
-function fixture() {
+function fixture(priorConfirmation = false) {
   let reservationStatus: ReservationStatus = "PENDING";
   let paymentStatus: PaymentStatus = "FAILED";
   let paidAt: Date | null = null;
@@ -39,6 +39,7 @@ function fixture() {
     total: amount,
     currency: "USD",
     confirmedAt: null,
+    paidConfirmationEmailAttemptedAt: priorConfirmation ? new Date() : null,
     payments: created ? [{ id: paymentId, amount: recordedAmount, status: paymentStatus }] : [],
   });
   const payment = () => ({ id: paymentId, status: paymentStatus, paidAt, amount: recordedAmount, currency: "USD", provider: "MOCK_CARD" });
@@ -86,6 +87,18 @@ function fixture() {
 }
 
 describe("admin payment writes", () => {
+  it("returns a full-payment receipt after a booking with a prior confirmation is refunded and repaid", async () => {
+    const { database } = fixture(true);
+    const create = () => createAdminMockPayment(database, staff, hotelId, reservationId, async () => card);
+    assert.equal((await create()).status, 201);
+    assert.equal((await updateAdminPaymentStatus(database, staff, hotelId, reservationId, paymentId, async () => ({
+      action: "MARK_REFUNDED",
+    }))).status, 200);
+    const repaid = await create();
+    assert.equal(repaid.status, 201);
+    assert.deepEqual(repaid.paymentReceipt, { paymentId, remaining: 0 });
+  });
+
   it("rejects missing sessions, wrong hotels, and read-only roles before parsing the body", async () => {
     const database = {} as PrismaClient;
     const unread = async () => assert.fail("Unauthorized requests must not be processed");
@@ -104,12 +117,12 @@ describe("admin payment writes", () => {
     assert.equal(audits.length, 0);
     const declined = await create({ ...card, cardNumber: "4000000000000000" });
     assert.equal(declined.status, 201);
-    assert.equal(declined.partialPaymentReceipt, undefined);
+    assert.equal(declined.paymentReceipt, undefined);
     assert.equal(payment().status, "FAILED");
     assert.equal(reservation().status, "PENDING");
     const fullyPaid = await update("MARK_PAID");
     assert.equal(fullyPaid.status, 200);
-    assert.equal(fullyPaid.partialPaymentReceipt, undefined);
+    assert.equal(fullyPaid.paymentReceipt, undefined);
     assert.equal(payment().status, "PAID");
     assert.equal(reservation().status, "CONFIRMED");
     assert.equal((await create(card)).status, 409);
@@ -141,7 +154,7 @@ describe("admin payment writes", () => {
     const partialCard = { ...card, amount: 250 };
     const direct = fixture();
     const created = await createAdminMockPayment(direct.database, staff, hotelId, reservationId, async () => partialCard);
-    assert.deepEqual(created.partialPaymentReceipt, expected);
+    assert.deepEqual(created.paymentReceipt, expected);
 
     const manual = fixture();
     await createAdminMockPayment(manual.database, staff, hotelId, reservationId, async () => ({
@@ -150,6 +163,6 @@ describe("admin payment writes", () => {
     const marked = await updateAdminPaymentStatus(manual.database, staff, hotelId, reservationId, paymentId, async () => ({
       action: "MARK_PAID",
     }));
-    assert.deepEqual(marked.partialPaymentReceipt, expected);
+    assert.deepEqual(marked.paymentReceipt, expected);
   });
 });

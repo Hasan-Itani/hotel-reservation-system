@@ -15,12 +15,13 @@ const card = {
   cvv: "123",
 };
 
-function paymentFixture() {
+function paymentFixture(priorConfirmation = false) {
   const paymentWrites: Prisma.PaymentUncheckedCreateInput[] = [];
   const reservationUpdates: Prisma.ReservationUpdateInput[] = [];
   const lookups: Prisma.ReservationWhereInput[] = [];
-  let status: ReservationStatus = ReservationStatus.PENDING;
-  let confirmedAt: Date | null = null;
+  let status: ReservationStatus = priorConfirmation ? ReservationStatus.CONFIRMED : ReservationStatus.PENDING;
+  let confirmedAt: Date | null = priorConfirmation ? new Date() : null;
+  const paidConfirmationEmailAttemptedAt = confirmedAt;
   const transaction = {
     reservation: {
       findFirst: async ({ where }: { where: Prisma.ReservationWhereInput }) => {
@@ -33,6 +34,7 @@ function paymentFixture() {
           reservationNumber,
           status,
           confirmedAt,
+          paidConfirmationEmailAttemptedAt,
           total: new Prisma.Decimal(1250),
           currency: "USD",
           payments: paymentWrites,
@@ -65,6 +67,20 @@ function paymentFixture() {
 }
 
 describe("guest mock payment writes", () => {
+  it("creates a new receipt when a refunded booking is paid in full again", async () => {
+    const { database, paymentWrites } = paymentFixture(true);
+    await submitPublicPayment(database, reservationNumber, card, getGuest);
+    paymentWrites[0].status = PaymentStatus.REFUNDED;
+
+    const repaid = await submitPublicPayment(database, reservationNumber, card, getGuest);
+    assert.equal(repaid.status, 201);
+    assert.ok("paymentReceipt" in repaid);
+    assert.deepEqual(repaid.paymentReceipt, { paymentId: "payment-2", remaining: 0 });
+    const repeat = await submitPublicPayment(database, reservationNumber, card, getGuest);
+    assert.equal(repeat.status, 409);
+    assert.ok(!("paymentReceipt" in repeat));
+  });
+
   it("records a decline without changing the balance or reservation status", async () => {
     const { database, paymentWrites, reservationUpdates } = paymentFixture();
     const result = await submitPublicPayment(database, reservationNumber, { ...card, cardNumber: "4000000000000002" }, getGuest);
@@ -84,8 +100,8 @@ describe("guest mock payment writes", () => {
     assert.ok("paymentSummary" in partial.body);
     assert.equal(partial.body.reservationStatus, ReservationStatus.PENDING);
     assert.deepEqual(partial.body.paymentSummary, { total: 1250, paid: 250, remaining: 1000 });
-    assert.ok("partialPaymentReceipt" in partial);
-    assert.deepEqual(partial.partialPaymentReceipt, { paymentId: "payment-1", remaining: 1000 });
+    assert.ok("paymentReceipt" in partial);
+    assert.deepEqual(partial.paymentReceipt, { paymentId: "payment-1", remaining: 1000 });
     assert.ok(!("id" in (partial.body.payment ?? {})));
     assert.equal(reservationUpdates.length, 0);
 
@@ -95,8 +111,8 @@ describe("guest mock payment writes", () => {
     assert.equal(full.body.payment?.cardLast4, "4242");
     assert.equal(full.body.reservationStatus, ReservationStatus.CONFIRMED);
     assert.deepEqual(full.body.paymentSummary, { total: 1250, paid: 1250, remaining: 0 });
-    assert.ok("partialPaymentReceipt" in full);
-    assert.equal(full.partialPaymentReceipt, undefined);
+    assert.ok("paymentReceipt" in full);
+    assert.equal(full.paymentReceipt, undefined);
     assert.equal(reservationUpdates.length, 1);
     assert.ok(full.body.confirmedAt instanceof Date);
     assert.ok(paymentWrites.every((payment) => payment.isMock && !("cardNumber" in payment) && !("cvv" in payment)));

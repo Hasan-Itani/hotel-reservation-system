@@ -1,5 +1,5 @@
 import { PaymentProvider, PaymentStatus, Prisma, type PrismaClient, type ReservationStatus } from "@prisma/client";
-import { getPartialPaymentReceipt } from "./partial-payment-receipt";
+import { getPaymentReceipt, type PaymentReceipt } from "./payment-receipt";
 import type { PublicBookingPaymentInput } from "./public-payment-schema";
 import {
   calculatePaidAmount,
@@ -67,6 +67,7 @@ type PaymentTransactionResult =
   | {
       type: "SUCCESS";
       payment: PublicPaymentRecord;
+      paymentReceipt?: PaymentReceipt;
       reservationNumber: string;
       reservationStatus: ReservationStatus;
       confirmedAt: Date | null;
@@ -139,6 +140,7 @@ export async function processPublicPayment(
             currency: true,
             status: true,
             confirmedAt: true,
+            paidConfirmationEmailAttemptedAt: true,
             payments: {
               orderBy: {
                 createdAt: "desc",
@@ -281,6 +283,7 @@ export async function processPublicPayment(
         return {
           type: "SUCCESS",
           payment,
+          paymentReceipt: getPaymentReceipt(payment, remainingAfterPayment, Boolean(reservation.paidConfirmationEmailAttemptedAt)),
           reservationNumber: reservation.reservationNumber,
           reservationStatus,
           confirmedAt,
@@ -341,7 +344,7 @@ export async function processPublicPayment(
         } };
 
       case "SUCCESS":
-        return { status: 201, partialPaymentReceipt: getPartialPaymentReceipt(result.payment, result.paymentSummary.remaining), body: {
+        return { status: 201, paymentReceipt: result.paymentReceipt, body: {
           message: "Mock card payment processed successfully",
           payment: serializePayment(result.payment),
           reservationNumber: result.reservationNumber,

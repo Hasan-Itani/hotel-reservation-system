@@ -2,21 +2,22 @@ import { Logger } from "@nestjs/common";
 import type { PrismaClient } from "@prisma/client";
 import type { SendTransactionalEmail } from "../common/resend-sender";
 
-export type PartialPaymentReceipt = { paymentId: string; remaining: number };
+export type PaymentReceipt = { paymentId: string; remaining: number };
 
-const logger = new Logger("PartialPaymentReceipt");
+const logger = new Logger("PaymentReceipt");
 
-export function getPartialPaymentReceipt(
+export function getPaymentReceipt(
   payment: { id: string; status: string },
   remaining: number,
-): PartialPaymentReceipt | undefined {
-  if (payment.status !== "PAID" || remaining <= 0) return undefined;
+  confirmationAlreadyAttempted: boolean,
+): PaymentReceipt | undefined {
+  if (payment.status !== "PAID" || (remaining <= 0 && !confirmationAlreadyAttempted)) return undefined;
   return { paymentId: payment.id, remaining };
 }
 
-export async function tryPartialPaymentReceipt(
+export async function tryPaymentReceipt(
   database: Pick<PrismaClient, "payment">,
-  receipt: PartialPaymentReceipt,
+  receipt: PaymentReceipt,
   send: SendTransactionalEmail | null,
 ) {
   if (!send) return;
@@ -37,19 +38,20 @@ export async function tryPartialPaymentReceipt(
 
     const { reservation } = payment;
     const formatter = new Intl.NumberFormat("en", { style: "currency", currency: payment.currency });
+    const isPartial = receipt.remaining > 0;
     await send({
       to: reservation.guestEmail,
-      subject: `${payment.isMock ? "[TEST] " : ""}Partial payment received: ${reservation.reservationNumber}`,
+      subject: `${payment.isMock ? "[TEST] " : ""}${isPartial ? "Partial payment received" : "Payment received"}: ${reservation.reservationNumber}`,
       text: [
-        "A partial payment was recorded for your booking.",
+        isPartial ? "A partial payment was recorded for your booking." : "A payment was recorded and your booking balance is fully paid.",
         `Reservation: ${reservation.reservationNumber}`,
         `Hotel: ${reservation.hotel.name}`,
         `Amount paid this time: ${formatter.format(Number(payment.amount))} ${payment.currency}`,
         `Balance after this payment: ${formatter.format(receipt.remaining)} ${payment.currency}`,
         ...(payment.isMock ? ["This was a test payment. No real charge was made."] : []),
       ].join("\n"),
-    }, `booking-partial-payment/${receipt.paymentId}`);
+    }, `${isPartial ? "booking-partial-payment" : "booking-payment"}/${receipt.paymentId}`);
   } catch {
-    logger.warn("Unable to send the partial-payment receipt. The payment was already recorded.");
+    logger.warn("Unable to send the payment receipt. The payment was already recorded.");
   }
 }

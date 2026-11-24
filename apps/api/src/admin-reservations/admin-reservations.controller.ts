@@ -2,7 +2,7 @@ import { Body, Controller, Get, Headers, Inject, Param, Patch, Post, Req, Res } 
 import { ConfigService } from "@nestjs/config";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { isPaidPaymentResponse } from "../booking-domain/paid-confirmation-email";
-import { tryPartialPaymentReceipt } from "../booking-domain/partial-payment-receipt";
+import { tryPaymentReceipt } from "../booking-domain/payment-receipt";
 import { tryPaidBookingConfirmation } from "../booking-domain/paid-confirmation-mailer";
 import { canAccessHotel, type AuthUser } from "../common/permissions";
 import { getResendSender } from "../common/resend-sender";
@@ -127,8 +127,8 @@ export class AdminReservationsController {
   }
 
   private async notifyPayment(reservationId: string, result: PaymentWriteResult) {
-    if (result.partialPaymentReceipt) {
-      await tryPartialPaymentReceipt(this.prisma, result.partialPaymentReceipt, getResendSender(this.config));
+    if (result.paymentReceipt) {
+      await tryPaymentReceipt(this.prisma, result.paymentReceipt, getResendSender(this.config));
     } else if (isPaidPaymentResponse(result)) {
       await tryPaidBookingConfirmation(this.prisma, this.config, { id: reservationId });
     }

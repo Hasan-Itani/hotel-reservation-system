@@ -2,7 +2,7 @@ import { Body, Controller, Headers, Inject, Param, Post, Req, Res } from "@nestj
 import { ConfigService } from "@nestjs/config";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { isPaidPaymentResponse } from "../booking-domain/paid-confirmation-email";
-import { tryPartialPaymentReceipt } from "../booking-domain/partial-payment-receipt";
+import { tryPaymentReceipt } from "../booking-domain/payment-receipt";
 import { tryPaidBookingConfirmation } from "../booking-domain/paid-confirmation-mailer";
 import { submitPublicPayment } from "../booking-domain/submit-public-payment";
 import { getClientIp } from "../common/rate-limit/client-ip";
@@ -47,8 +47,8 @@ export class PublicBookingPaymentController {
       const session = await this.sessions.getCurrentSession(authorization);
       return session?.user ?? null;
     });
-    if ("partialPaymentReceipt" in result && result.partialPaymentReceipt) {
-      await tryPartialPaymentReceipt(this.prisma, result.partialPaymentReceipt, getResendSender(this.config));
+    if ("paymentReceipt" in result && result.paymentReceipt) {
+      await tryPaymentReceipt(this.prisma, result.paymentReceipt, getResendSender(this.config));
     } else if (isPaidPaymentResponse(result)) {
       await tryPaidBookingConfirmation(this.prisma, this.config, { reservationNumber: reservationNumber.trim().toUpperCase() });
     }

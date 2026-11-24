@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { getPartialPaymentReceipt, type PartialPaymentReceipt } from "../booking-domain/partial-payment-receipt";
+import { getPaymentReceipt, type PaymentReceipt } from "../booking-domain/payment-receipt";
 import { mockPaymentCreateSchema } from "../booking-domain/public-payment-schema";
 import {
   calculatePaidAmount,
@@ -14,7 +14,7 @@ import type { AuthUser } from "../common/permissions";
 import { requireReservationWriteAccess, writeResponse, type ReservationWriteResult } from "./reservation-write-access";
 import { paymentStatusUpdateSchema } from "./payment-write-schema";
 
-export type PaymentWriteResult = ReservationWriteResult & { partialPaymentReceipt?: PartialPaymentReceipt };
+export type PaymentWriteResult = ReservationWriteResult & { paymentReceipt?: PaymentReceipt };
 
 const paymentSelect = {
   id: true,
@@ -91,6 +91,7 @@ export async function createAdminMockPayment(
           total: true,
           currency: true,
           confirmedAt: true,
+          paidConfirmationEmailAttemptedAt: true,
           payments: {
             select: {
               status: true,
@@ -258,9 +259,10 @@ export async function createAdminMockPayment(
       );
       return {
         ...response,
-        partialPaymentReceipt: getPartialPaymentReceipt(
+        paymentReceipt: getPaymentReceipt(
           payment,
           calculateRemainingBalance(reservation.total, roundMoney(alreadyPaid + amount)),
+          Boolean(reservation.paidConfirmationEmailAttemptedAt),
         ),
       };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -343,6 +345,7 @@ export async function updateAdminPaymentStatus(
               total: true,
               currency: true,
               confirmedAt: true,
+              paidConfirmationEmailAttemptedAt: true,
               payments: {
                 select: {
                   id: true,
@@ -552,9 +555,10 @@ export async function updateAdminPaymentStatus(
           payment: updatedPayment,
           reservation: updatedReservation,
         }),
-        partialPaymentReceipt: normalizedPaymentAmount === null ? undefined : getPartialPaymentReceipt(
+        paymentReceipt: normalizedPaymentAmount === null ? undefined : getPaymentReceipt(
           updatedPayment,
           calculateRemainingBalance(payment.reservation.total, roundMoney(alreadyPaid + normalizedPaymentAmount)),
+          Boolean(payment.reservation.paidConfirmationEmailAttemptedAt),
         ),
       };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

@@ -73,7 +73,9 @@ Legend:
 - [x] Verify full mock refund notice delivery in a controlled inbox.
 - [ ] Add partial-refund notices only after the system records partial-refund amounts.
 - [x] Send partial-payment receipts with the amount paid and the remaining balance after that payment.
-- [ ] Verify partial-payment receipt delivery in a controlled inbox.
+- [x] Verify partial-payment receipt delivery in a controlled inbox.
+- [x] Send a separate receipt when a new payment clears a reopened balance after the booking confirmation was already attempted.
+- [ ] Verify repayment receipt delivery after a full mock refund.
 - [ ] Add a checkout receipt or folio and a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
 - [ ] Cancellation email.
 - [ ] Contact inquiry received email.

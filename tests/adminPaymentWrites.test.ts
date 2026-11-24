@@ -29,6 +29,7 @@ function fixture() {
   let paymentStatus: PaymentStatus = "FAILED";
   let paidAt: Date | null = null;
   const amount = new Prisma.Decimal(1250);
+  let recordedAmount = amount;
   let created = false;
   const audits: Prisma.AuditLogUncheckedCreateInput[] = [];
   const reservation = () => ({
@@ -38,9 +39,9 @@ function fixture() {
     total: amount,
     currency: "USD",
     confirmedAt: null,
-    payments: created ? [{ id: paymentId, amount, status: paymentStatus }] : [],
+    payments: created ? [{ id: paymentId, amount: recordedAmount, status: paymentStatus }] : [],
   });
-  const payment = () => ({ id: paymentId, status: paymentStatus, paidAt, amount, currency: "USD", provider: "MOCK_CARD" });
+  const payment = () => ({ id: paymentId, status: paymentStatus, paidAt, amount: recordedAmount, currency: "USD", provider: "MOCK_CARD" });
   const transaction = {
     reservation: {
       findFirst: async ({ where }: Prisma.ReservationFindFirstArgs) => {
@@ -60,7 +61,7 @@ function fixture() {
       create: async ({ data }: { data: Prisma.PaymentUncheckedCreateInput }) => {
         assert.equal(data.isMock, true);
         assert.equal(data.reservationId, reservationId);
-        assert.equal(data.amount, 1250);
+        recordedAmount = new Prisma.Decimal(String(data.amount));
         assert.equal("cardNumber" in data || "cvv" in data, false);
         paymentStatus = data.status as PaymentStatus;
         paidAt = data.paidAt as Date | null;
@@ -101,10 +102,14 @@ describe("admin payment writes", () => {
 
     assert.equal((await create({ ...card, amount: 1250.01 })).status, 409);
     assert.equal(audits.length, 0);
-    assert.equal((await create({ ...card, cardNumber: "4000000000000000" })).status, 201);
+    const declined = await create({ ...card, cardNumber: "4000000000000000" });
+    assert.equal(declined.status, 201);
+    assert.equal(declined.partialPaymentReceipt, undefined);
     assert.equal(payment().status, "FAILED");
     assert.equal(reservation().status, "PENDING");
-    assert.equal((await update("MARK_PAID")).status, 200);
+    const fullyPaid = await update("MARK_PAID");
+    assert.equal(fullyPaid.status, 200);
+    assert.equal(fullyPaid.partialPaymentReceipt, undefined);
     assert.equal(payment().status, "PAID");
     assert.equal(reservation().status, "CONFIRMED");
     assert.equal((await create(card)).status, 409);
@@ -129,5 +134,22 @@ describe("admin payment writes", () => {
     const response = await createAdminMockPayment(database, staff, hotelId, reservationId, async () => card);
     assert.equal(response.status, 409);
     assert.equal(attempts, 1);
+  });
+
+  it("returns the same partial receipt data when staff records a payment or marks it paid", async () => {
+    const expected = { paymentId, remaining: 1000 };
+    const partialCard = { ...card, amount: 250 };
+    const direct = fixture();
+    const created = await createAdminMockPayment(direct.database, staff, hotelId, reservationId, async () => partialCard);
+    assert.deepEqual(created.partialPaymentReceipt, expected);
+
+    const manual = fixture();
+    await createAdminMockPayment(manual.database, staff, hotelId, reservationId, async () => ({
+      ...partialCard, cardNumber: "4000000000000000",
+    }));
+    const marked = await updateAdminPaymentStatus(manual.database, staff, hotelId, reservationId, paymentId, async () => ({
+      action: "MARK_PAID",
+    }));
+    assert.deepEqual(marked.partialPaymentReceipt, expected);
   });
 });

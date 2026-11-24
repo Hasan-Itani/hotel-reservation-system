@@ -70,8 +70,10 @@ Legend:
 - [x] Send one combined booking/payment confirmation when a successful payment leaves the reservation confirmed and fully paid. Label mock payments as test payments.
 - [x] Test confirmation delivery to a controlled inbox, including failed and partial payments not sending a confirmation.
 - [x] Send a notice after a full mock refund, with the amount and an explicit statement that no money was returned.
-- [ ] Verify refund notice delivery in a controlled inbox. Add partial-refund notices only after the system records partial-refund amounts.
-- [ ] Add optional partial-payment receipts with the amount paid and remaining balance.
+- [x] Verify full mock refund notice delivery in a controlled inbox.
+- [ ] Add partial-refund notices only after the system records partial-refund amounts.
+- [x] Send partial-payment receipts with the amount paid and the remaining balance after that payment.
+- [ ] Verify partial-payment receipt delivery in a controlled inbox.
 - [ ] Add a checkout receipt or folio and a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
 - [ ] Cancellation email.
 - [ ] Contact inquiry received email.

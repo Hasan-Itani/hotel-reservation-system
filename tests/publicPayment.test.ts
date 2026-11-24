@@ -48,7 +48,7 @@ function paymentFixture() {
     payment: {
       create: async ({ data }: { data: Prisma.PaymentUncheckedCreateInput }) => {
         paymentWrites.push(data);
-        return { ...data, createdAt: new Date() };
+        return { ...data, id: `payment-${paymentWrites.length}`, createdAt: new Date() };
       },
     },
   };
@@ -84,6 +84,9 @@ describe("guest mock payment writes", () => {
     assert.ok("paymentSummary" in partial.body);
     assert.equal(partial.body.reservationStatus, ReservationStatus.PENDING);
     assert.deepEqual(partial.body.paymentSummary, { total: 1250, paid: 250, remaining: 1000 });
+    assert.ok("partialPaymentReceipt" in partial);
+    assert.deepEqual(partial.partialPaymentReceipt, { paymentId: "payment-1", remaining: 1000 });
+    assert.ok(!("id" in (partial.body.payment ?? {})));
     assert.equal(reservationUpdates.length, 0);
 
     const full = await submitPublicPayment(database, reservationNumber, card, getGuest);
@@ -92,6 +95,8 @@ describe("guest mock payment writes", () => {
     assert.equal(full.body.payment?.cardLast4, "4242");
     assert.equal(full.body.reservationStatus, ReservationStatus.CONFIRMED);
     assert.deepEqual(full.body.paymentSummary, { total: 1250, paid: 1250, remaining: 0 });
+    assert.ok("partialPaymentReceipt" in full);
+    assert.equal(full.partialPaymentReceipt, undefined);
     assert.equal(reservationUpdates.length, 1);
     assert.ok(full.body.confirmedAt instanceof Date);
     assert.ok(paymentWrites.every((payment) => payment.isMock && !("cardNumber" in payment) && !("cvv" in payment)));

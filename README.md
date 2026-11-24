@@ -180,6 +180,7 @@ Email note:
 - For real production, use a verified domain and an address like `bookings@yourdomain.com`.
 - A confirmed reservation receives one email attempt after a successful full payment. Mock payment emails are marked as tests. An email delivery error does not undo a payment, and automatic retry is not enabled.
 - Recording a full mock refund sends a separate test notice. Partial refunds do not send notices because the system does not record their amounts.
+- Successful partial payments send a separate receipt with the amount paid and the remaining balance at the time of payment.
 
 ## Local Setup
 

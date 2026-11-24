@@ -1,4 +1,5 @@
 import { PaymentProvider, PaymentStatus, Prisma, type PrismaClient, type ReservationStatus } from "@prisma/client";
+import { getPartialPaymentReceipt } from "./partial-payment-receipt";
 import type { PublicBookingPaymentInput } from "./public-payment-schema";
 import {
   calculatePaidAmount,
@@ -10,6 +11,7 @@ import {
 } from "./reservation-payments";
 
 const publicPaymentSelect = {
+  id: true,
   methodLabel: true,
   cardLast4: true,
   isMock: true,
@@ -339,7 +341,7 @@ export async function processPublicPayment(
         } };
 
       case "SUCCESS":
-        return { status: 201, body: {
+        return { status: 201, partialPaymentReceipt: getPartialPaymentReceipt(result.payment, result.paymentSummary.remaining), body: {
           message: "Mock card payment processed successfully",
           payment: serializePayment(result.payment),
           reservationNumber: result.reservationNumber,

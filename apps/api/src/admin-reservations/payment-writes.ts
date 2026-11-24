@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
+import { getPartialPaymentReceipt, type PartialPaymentReceipt } from "../booking-domain/partial-payment-receipt";
 import { mockPaymentCreateSchema } from "../booking-domain/public-payment-schema";
 import {
   calculatePaidAmount,
@@ -12,6 +13,8 @@ import { createAuditLog } from "../common/audit-log";
 import type { AuthUser } from "../common/permissions";
 import { requireReservationWriteAccess, writeResponse, type ReservationWriteResult } from "./reservation-write-access";
 import { paymentStatusUpdateSchema } from "./payment-write-schema";
+
+export type PaymentWriteResult = ReservationWriteResult & { partialPaymentReceipt?: PartialPaymentReceipt };
 
 const paymentSelect = {
   id: true,
@@ -48,7 +51,7 @@ export async function createAdminMockPayment(
   hotelId: string,
   reservationId: string,
   readBody: () => Promise<unknown>,
-): Promise<ReservationWriteResult> {
+): Promise<PaymentWriteResult> {
   const access = requireReservationWriteAccess(user, hotelId);
   if (!access.ok) return access.result;
 
@@ -243,7 +246,7 @@ export async function createAdminMockPayment(
         tx,
       );
 
-      return writeResponse(
+      const response = writeResponse(
         {
           message: payment.status === "PAID"
             ? "Mock card payment processed successfully"
@@ -253,6 +256,13 @@ export async function createAdminMockPayment(
         },
         { status: 201 },
       );
+      return {
+        ...response,
+        partialPaymentReceipt: getPartialPaymentReceipt(
+          payment,
+          calculateRemainingBalance(reservation.total, roundMoney(alreadyPaid + amount)),
+        ),
+      };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -282,7 +292,7 @@ export async function updateAdminPaymentStatus(
   reservationId: string,
   paymentId: string,
   readBody: () => Promise<unknown>,
-): Promise<ReservationWriteResult> {
+): Promise<PaymentWriteResult> {
   const access = requireReservationWriteAccess(user, hotelId);
   if (!access.ok) return access.result;
 
@@ -536,11 +546,17 @@ export async function updateAdminPaymentStatus(
         tx,
       );
 
-      return writeResponse({
-        message: "Payment updated successfully",
-        payment: updatedPayment,
-        reservation: updatedReservation,
-      });
+      return {
+        ...writeResponse({
+          message: "Payment updated successfully",
+          payment: updatedPayment,
+          reservation: updatedReservation,
+        }),
+        partialPaymentReceipt: normalizedPaymentAmount === null ? undefined : getPartialPaymentReceipt(
+          updatedPayment,
+          calculateRemainingBalance(payment.reservation.total, roundMoney(alreadyPaid + normalizedPaymentAmount)),
+        ),
+      };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

@@ -37,7 +37,9 @@ export async function notifyCancellation(
         `Booked stay: ${booking.checkInDate.toISOString().slice(0, 10)} to ${booking.checkOutDate.toISOString().slice(0, 10)}`,
         "This cancellation did not issue a refund. Contact the hotel if you have questions about a payment.",
       ].join("\n"),
-    }, `booking-cancelled/${booking.id}`);
+    }, `booking-cancelled/${booking.id}`, {
+      ...scope, reservationNumber: booking.reservationNumber, emailType: "Cancellation notice",
+    });
   } catch {
     logger.warn("Unable to send the cancellation email. The reservation was already cancelled.");
   }

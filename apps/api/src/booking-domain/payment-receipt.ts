@@ -30,7 +30,7 @@ export async function tryPaymentReceipt(
         currency: true,
         isMock: true,
         reservation: {
-          select: { reservationNumber: true, guestEmail: true, hotel: { select: { name: true } } },
+          select: { id: true, hotelId: true, reservationNumber: true, guestEmail: true, hotel: { select: { name: true } } },
         },
       },
     });
@@ -50,7 +50,10 @@ export async function tryPaymentReceipt(
         `Balance after this payment: ${formatter.format(receipt.remaining)} ${payment.currency}`,
         ...(payment.isMock ? ["This was a test payment. No real charge was made."] : []),
       ].join("\n"),
-    }, `${isPartial ? "booking-partial-payment" : "booking-payment"}/${receipt.paymentId}`);
+    }, `${isPartial ? "booking-partial-payment" : "booking-payment"}/${receipt.paymentId}`, {
+      hotelId: reservation.hotelId, reservationId: reservation.id, reservationNumber: reservation.reservationNumber,
+      emailType: isPartial ? "Partial payment receipt" : "Payment receipt",
+    });
   } catch {
     logger.warn("Unable to send the payment receipt. The payment was already recorded.");
   }

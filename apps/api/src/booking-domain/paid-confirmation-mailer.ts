@@ -11,7 +11,7 @@ export async function tryPaidBookingConfirmation(
   config: ConfigService,
   where: Prisma.ReservationWhereUniqueInput,
 ) {
-  const send = getResendSender(config);
+  const send = getResendSender(config, database);
   if (!send) return;
 
   try {

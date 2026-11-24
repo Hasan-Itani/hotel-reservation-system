@@ -97,7 +97,7 @@ export class AdminReservationsController {
     return this.write(authorization, reply, async (user) => {
       const result = await updateAdminReservation(this.prisma, user, hotelId, reservationId, async () => body);
       const scope = { hotelId, reservationId };
-      const send = getResendSender(this.config);
+      const send = getResendSender(this.config, this.prisma);
       return result.cancellationCompleted
         ? notifyCancellation(this.prisma, scope, result, send)
         : notifyCheckoutSummary(this.prisma, scope, result, send);
@@ -129,13 +129,13 @@ export class AdminReservationsController {
     return this.write(authorization, reply, async (user) => {
       const result = await updateAdminPaymentStatus(this.prisma, user, hotelId, reservationId, paymentId, async () => body);
       await this.notifyPayment(reservationId, result);
-      return notifyMockRefund(this.prisma, { hotelId, reservationId, paymentId }, result, getResendSender(this.config));
+      return notifyMockRefund(this.prisma, { hotelId, reservationId, paymentId }, result, getResendSender(this.config, this.prisma));
     });
   }
 
   private async notifyPayment(reservationId: string, result: PaymentWriteResult) {
     if (result.paymentReceipt) {
-      await tryPaymentReceipt(this.prisma, result.paymentReceipt, getResendSender(this.config));
+      await tryPaymentReceipt(this.prisma, result.paymentReceipt, getResendSender(this.config, this.prisma));
     } else if (isPaidPaymentResponse(result)) {
       await tryPaidBookingConfirmation(this.prisma, this.config, { id: reservationId });
     }

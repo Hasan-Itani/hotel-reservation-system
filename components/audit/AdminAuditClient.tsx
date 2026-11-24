@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import {
   AUDIT_EVENT_CATEGORY_OPTIONS,
+  AUDIT_EVENT_CATEGORIES,
   isAuditActionInCategory,
   normalizeAuditEventCategory,
 } from "@/lib/auditEvents";
@@ -23,6 +25,7 @@ type AdminAuditClientProps = {
     action: string;
     entityType: string;
     actorUserId: string;
+    reservationNumber: string;
   };
 };
 
@@ -131,6 +134,7 @@ export function AdminAuditClient({
   const [action, setAction] = useState(initialFilters.action);
   const [entityType, setEntityType] = useState(initialFilters.entityType);
   const [actorUserId, setActorUserId] = useState(initialFilters.actorUserId);
+  const [reservationNumber, setReservationNumber] = useState(initialFilters.reservationNumber);
   const [selectedLogId, setSelectedLogId] = useState(initialLogs[0]?.id || "");
 
   const selectedLog =
@@ -188,6 +192,11 @@ export function AdminAuditClient({
     } else {
       query.delete("actorUserId");
     }
+    if (reservationNumber.trim()) {
+      query.set("reservationNumber", reservationNumber.trim());
+    } else {
+      query.delete("reservationNumber");
+    }
 
     router.push(`/admin/audit?${query.toString()}`);
   }
@@ -197,6 +206,7 @@ export function AdminAuditClient({
     setAction("");
     setEntityType("");
     setActorUserId("");
+    setReservationNumber("");
     router.push(`/admin/audit?hotelId=${hotel.id}`);
   }
 
@@ -209,7 +219,7 @@ export function AdminAuditClient({
           </h1>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Review administrative and account security activity for {hotel.name}.
+            Review administrative, account security, and email activity for {hotel.name}.
           </p>
         </div>
 
@@ -224,7 +234,7 @@ export function AdminAuditClient({
         </CardHeader>
 
         <CardContent>
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-5">
+          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-foreground">
                 Activity area
@@ -316,6 +326,15 @@ export function AdminAuditClient({
               </select>
             </label>
 
+            <Input
+              label="Reservation number"
+              name="reservationNumber"
+              placeholder="RSV-..."
+              maxLength={50}
+              value={reservationNumber}
+              onChange={(event) => setReservationNumber(event.target.value)}
+            />
+
             <div className="flex items-end gap-2">
               <Button
                 onClick={applyFilters}
@@ -334,6 +353,11 @@ export function AdminAuditClient({
               </Button>
             </div>
           </div>
+          {eventCategory === AUDIT_EVENT_CATEGORIES.EMAIL_NOTIFICATIONS ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Accepted means Resend accepted the request. It doesn’t confirm inbox delivery.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

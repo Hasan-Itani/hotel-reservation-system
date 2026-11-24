@@ -53,6 +53,7 @@ export async function listHotelAudit(
   const action = query.get("action") || undefined;
   const entityType = query.get("entityType") || undefined;
   const actorUserId = query.get("actorUserId") || undefined;
+  const reservationNumber = query.get("reservationNumber")?.trim().toUpperCase();
   const eventCategory = normalizeAuditEventCategory(
     query.get("eventCategory"),
   );
@@ -65,6 +66,12 @@ export async function listHotelAudit(
   if (action) whereConditions.push({ action });
   if (entityType) whereConditions.push({ entityType });
   if (actorUserId) whereConditions.push({ actorUserId });
+  if (reservationNumber) {
+    if (reservationNumber.length > 50) {
+      return activityResponse({ error: "Invalid reservation number" }, { status: 400 });
+    }
+    whereConditions.push({ metadata: { path: ["reservationNumber"], equals: reservationNumber } });
+  }
 
   const where: Prisma.AuditLogWhereInput = {
     AND: whereConditions,

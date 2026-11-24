@@ -81,10 +81,10 @@ Legend:
 - [x] Verify checkout summary delivery in a controlled inbox.
 - [ ] Add a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
 - [x] Send a guest cancellation email after staff cancels a booking. Keep internal notes and refund actions separate.
-- [ ] Verify cancellation email delivery in a controlled inbox.
+- [x] Verify cancellation email delivery in a controlled inbox.
 - [ ] Contact inquiry received email.
 - [ ] Admin inquiry alert email.
-- [ ] Notification log table.
+- [x] Record accepted and failed booking-related email attempts in the hotel-scoped Audit log, searchable by reservation number. Provider acceptance does not verify delivery.
 - [ ] Admin resend notification action.
   - The paid confirmation currently records one send attempt per reservation; email provider errors do not change a completed payment. Automatic retries and staff resend are not implemented.
 - [ ] Production sending domain verification.

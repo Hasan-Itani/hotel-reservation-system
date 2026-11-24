@@ -48,7 +48,10 @@ export async function notifyMockRefund(
         "No real money was returned or credited to a card.",
         "This refund notice does not cancel your reservation.",
       ].join("\n"),
-    }, `booking-refund/${payment.id}`);
+    }, `booking-refund/${payment.id}`, {
+      hotelId: scope.hotelId, reservationId: scope.reservationId,
+      reservationNumber: reservation.reservationNumber, emailType: "Refund notice",
+    });
   } catch {
     logger.warn("Unable to send the refund notice. The refund was already recorded.");
   }

@@ -7,6 +7,7 @@ export const AUDIT_EVENT_CATEGORIES = {
   PAYMENTS: "PAYMENTS",
   STAFF_ACCESS: "STAFF_ACCESS",
   GUEST_INQUIRIES: "GUEST_INQUIRIES",
+  EMAIL_NOTIFICATIONS: "EMAIL_NOTIFICATIONS",
 } as const;
 
 export type AuditEventCategory =
@@ -39,6 +40,10 @@ export const AUDIT_EVENT_CATEGORY_OPTIONS: Array<{
   {
     value: AUDIT_EVENT_CATEGORIES.GUEST_INQUIRIES,
     label: "Guest inquiries",
+  },
+  {
+    value: AUDIT_EVENT_CATEGORIES.EMAIL_NOTIFICATIONS,
+    label: "Email notifications",
   },
 ];
 
@@ -83,6 +88,7 @@ export const AUDIT_ACTIONS_BY_CATEGORY: Record<
     "STAFF_REMOVED",
   ],
   [AUDIT_EVENT_CATEGORIES.GUEST_INQUIRIES]: ["INQUIRY_UPDATED"],
+  [AUDIT_EVENT_CATEGORIES.EMAIL_NOTIFICATIONS]: ["EMAIL_ACCEPTED_BY_RESEND", "EMAIL_SEND_FAILED"],
 };
 
 export function normalizeAuditEventCategory(

@@ -58,7 +58,9 @@ export async function notifyCheckoutSummary(
         "Checkout did not create a charge or change any payment.",
         ...(includesMock ? ["Test transactions in this summary did not move real money."] : []),
       ].join("\n"),
-    }, `booking-checkout/${booking.id}`);
+    }, `booking-checkout/${booking.id}`, {
+      ...scope, reservationNumber: booking.reservationNumber, emailType: "Checkout summary",
+    });
   } catch {
     logger.warn("Unable to send the checkout summary. The checkout was already recorded.");
   }

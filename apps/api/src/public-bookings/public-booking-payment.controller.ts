@@ -48,7 +48,7 @@ export class PublicBookingPaymentController {
       return session?.user ?? null;
     });
     if ("paymentReceipt" in result && result.paymentReceipt) {
-      await tryPaymentReceipt(this.prisma, result.paymentReceipt, getResendSender(this.config));
+      await tryPaymentReceipt(this.prisma, result.paymentReceipt, getResendSender(this.config, this.prisma));
     } else if (isPaidPaymentResponse(result)) {
       await tryPaidBookingConfirmation(this.prisma, this.config, { reservationNumber: reservationNumber.trim().toUpperCase() });
     }

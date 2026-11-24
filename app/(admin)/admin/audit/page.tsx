@@ -12,6 +12,7 @@ type AdminAuditPageProps = {
     action?: string;
     entityType?: string;
     actorUserId?: string;
+    reservationNumber?: string;
   }>;
 };
 
@@ -26,6 +27,7 @@ function buildAuditPath(
   if (params?.action) query.set("action", params.action);
   if (params?.entityType) query.set("entityType", params.entityType);
   if (params?.actorUserId) query.set("actorUserId", params.actorUserId);
+  if (params?.reservationNumber?.trim()) query.set("reservationNumber", params.reservationNumber.trim());
 
   const suffix = query.toString();
 
@@ -95,6 +97,7 @@ export default async function AdminAuditPage({
         action: params?.action || "",
         entityType: params?.entityType || "",
         actorUserId: params?.actorUserId || "",
+        reservationNumber: params?.reservationNumber || "",
       }}
     />
   );

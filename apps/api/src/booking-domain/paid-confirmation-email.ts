@@ -22,6 +22,7 @@ export async function sendPaidBookingConfirmation(
       where: { ...where, status: "CONFIRMED", paidConfirmationEmailAttemptedAt: null },
       select: {
         id: true,
+        hotelId: true,
         reservationNumber: true,
         guestEmail: true,
         checkInDate: true,
@@ -65,6 +66,9 @@ export async function sendPaidBookingConfirmation(
       ...(mockOnly ? ["This was a test payment. No real charge was made."]
         : includesMock ? ["The total includes a test payment. No real charge was made for the test portion."] : []),
     ].join("\n"),
-  }, `booking-paid/${reservation.id}`);
+  }, `booking-paid/${reservation.id}`, {
+    hotelId: reservation.hotelId, reservationId: reservation.id,
+    reservationNumber: reservation.reservationNumber, emailType: "Booking confirmation",
+  });
   return true;
 }

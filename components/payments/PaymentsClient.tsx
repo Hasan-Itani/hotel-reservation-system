@@ -115,7 +115,8 @@ function isFinalReservationStatus(status: string) {
 
 function getAllowedPaymentActions(
   payment: Payment,
-  reservationStatus: string
+  reservationStatus: string,
+  refundAllowed: boolean,
 ): PaymentStatusAction[] {
   const reservationIsFinal = isFinalReservationStatus(reservationStatus);
 
@@ -127,11 +128,7 @@ function getAllowedPaymentActions(
     return reservationIsFinal ? [] : ["MARK_PAID"];
   }
 
-  if (payment.status === "PAID") {
-    return ["MARK_REFUNDED"];
-  }
-
-  if (payment.status === "PARTIALLY_REFUNDED") {
+  if (refundAllowed && (payment.status === "PAID" || payment.status === "PARTIALLY_REFUNDED")) {
     return ["MARK_REFUNDED"];
   }
 
@@ -724,12 +721,14 @@ export function PaymentsClient({
                             </div>
 
                             <div className="mt-4 flex flex-wrap gap-2">
-                              {getAllowedPaymentActions(payment, paymentReservation.status).length === 0 ? (
+                              {getAllowedPaymentActions(payment, paymentReservation.status, paymentReservation.refundAllowed).length === 0 ? (
                                 <p className="text-xs text-muted-foreground">
-                                  No actions available.
+                                  {!paymentReservation.refundAllowed && (payment.status === "PAID" || payment.status === "PARTIALLY_REFUNDED")
+                                    ? "Refunds are not available for completed stays."
+                                    : "No actions available."}
                                 </p>
                               ) : (
-                                getAllowedPaymentActions(payment, paymentReservation.status).map((action) => (
+                                getAllowedPaymentActions(payment, paymentReservation.status, paymentReservation.refundAllowed).map((action) => (
                                   <Button
                                     key={action}
                                     variant={getActionVariant(action)}

@@ -401,6 +401,7 @@ export type PaymentReservationSummary = {
 export type ReservationPaymentsResponse = {
   reservation: PaymentReservationSummary & {
     payments: Payment[];
+    refundAllowed: boolean;
   };
 };
 

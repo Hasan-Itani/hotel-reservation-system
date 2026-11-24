@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { parseDateOnlyToUtc } from "../booking-domain/hotel-inventory";
 import { reservationListQuerySchema } from "./reservation-list-query";
+import { canRefundReservation } from "./refund-policy";
 
 type ReadResult = { status: number; body: object };
 
@@ -264,6 +265,8 @@ export async function listAdminReservationPayments(
       guestFirstName: true,
       guestLastName: true,
       guestEmail: true,
+      checkOutDate: true,
+      hotel: { select: { timezone: true } },
       payments: {
         select: {
           id: true,
@@ -295,7 +298,9 @@ export async function listAdminReservationPayments(
     );
   }
 
-  return readResponse({ reservation });
+  const { checkOutDate, hotel, ...summary } = reservation;
+  const refundAllowed = canRefundReservation({ status: summary.status, checkOutDate, hotel });
+  return readResponse({ reservation: { ...summary, refundAllowed } });
 }
 
 export async function readAdminReservationPayment(

@@ -24,18 +24,20 @@ const card = {
   cvv: "123",
 };
 
-function fixture(priorConfirmation = false) {
-  let reservationStatus: ReservationStatus = "PENDING";
-  let paymentStatus: PaymentStatus = "FAILED";
+function fixture(priorConfirmation = false, existing?: { status: ReservationStatus; checkOutDate: string }) {
+  let reservationStatus: ReservationStatus = existing?.status ?? "PENDING";
+  let paymentStatus: PaymentStatus = existing ? "PAID" : "FAILED";
   let paidAt: Date | null = null;
   const amount = new Prisma.Decimal(1250);
   let recordedAmount = amount;
-  let created = false;
+  let created = Boolean(existing);
   const audits: Prisma.AuditLogUncheckedCreateInput[] = [];
   const reservation = () => ({
     id: reservationId,
     reservationNumber: "RSV-FIXTURE",
     status: reservationStatus,
+    checkOutDate: new Date(existing?.checkOutDate ?? "2099-12-20"),
+    hotel: { timezone: "Asia/Beirut" },
     total: amount,
     currency: "USD",
     confirmedAt: null,
@@ -87,6 +89,21 @@ function fixture(priorConfirmation = false) {
 }
 
 describe("admin payment writes", () => {
+  it("blocks full and partial refunds for checked-out and past stays without changing the payment", async () => {
+    for (const existing of [
+      { status: "CHECKED_OUT", checkOutDate: "2099-12-20" },
+      { status: "CONFIRMED", checkOutDate: "2000-01-01" },
+    ] as const) {
+      const { database, payment, audits } = fixture(true, existing);
+      for (const action of ["MARK_REFUNDED", "MARK_PARTIALLY_REFUNDED"]) {
+        const result = await updateAdminPaymentStatus(database, staff, hotelId, reservationId, paymentId, async () => ({ action }));
+        assert.deepEqual(result, { status: 409, body: { error: "Refunds are not available for completed stays" } });
+      }
+      assert.equal(payment().status, "PAID");
+      assert.equal(audits.length, 0);
+    }
+  });
+
   it("returns a full-payment receipt after a booking with a prior confirmation is refunded and repaid", async () => {
     const { database } = fixture(true);
     const create = () => createAdminMockPayment(database, staff, hotelId, reservationId, async () => card);

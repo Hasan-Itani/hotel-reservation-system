@@ -13,6 +13,7 @@ import { createAuditLog } from "../common/audit-log";
 import type { AuthUser } from "../common/permissions";
 import { requireReservationWriteAccess, writeResponse, type ReservationWriteResult } from "./reservation-write-access";
 import { paymentStatusUpdateSchema } from "./payment-write-schema";
+import { canRefundReservation } from "./refund-policy";
 
 export type PaymentWriteResult = ReservationWriteResult & { paymentReceipt?: PaymentReceipt };
 
@@ -342,6 +343,8 @@ export async function updateAdminPaymentStatus(
               id: true,
               reservationNumber: true,
               status: true,
+              checkOutDate: true,
+              hotel: { select: { timezone: true } },
               total: true,
               currency: true,
               confirmedAt: true,
@@ -360,6 +363,16 @@ export async function updateAdminPaymentStatus(
 
       if (!payment) {
         return writeResponse({ error: "Payment not found" }, { status: 404 });
+      }
+
+      if (
+        (action === "MARK_REFUNDED" || action === "MARK_PARTIALLY_REFUNDED") &&
+        !canRefundReservation(payment.reservation)
+      ) {
+        return writeResponse(
+          { error: "Refunds are not available for completed stays" },
+          { status: 409 },
+        );
       }
 
       if (

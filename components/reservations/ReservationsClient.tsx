@@ -293,13 +293,15 @@ export function ReservationsClient({
 
   function replaceReservation(updatedReservation: Reservation) {
     setDetails((current) =>
-      current?.id === updatedReservation.id
-        ? { id: updatedReservation.id, state: "ready", reservation: updatedReservation }
+      current?.id === updatedReservation.id && current.state === "ready"
+        ? { ...current, reservation: { ...updatedReservation, checkInDateReached: current.reservation.checkInDateReached } }
         : current,
     );
   }
 
   function startCheckIn(reservation: Reservation) {
+    if (reservation.checkInDateReached === false) return;
+
     if (checkInReservationId === reservation.id) {
       revealCheckInForm(checkInFormRef.current, detailsContentRef.current);
       return;
@@ -853,6 +855,11 @@ export function ReservationsClient({
                       </div>
                     ) : null}
 
+                    {selectedReservation.checkInDateReached === false && getAllowedActions(selectedReservation.status).includes("CHECK_IN") ? (
+                      <p className="mb-2 text-sm text-muted-foreground">
+                        Check-in opens on the scheduled arrival date.
+                      </p>
+                    ) : null}
                     <div className="flex flex-wrap gap-2">
                       {getAllowedActions(selectedReservation.status).length ===
                       0 ? (
@@ -867,6 +874,7 @@ export function ReservationsClient({
                                 key={action}
                                 onClick={() => startCheckIn(selectedReservation)}
                                 disabled={
+                                  selectedReservation.checkInDateReached === false ||
                                   actionLoading ===
                                   `${selectedReservation.id}:${action}`
                                 }

@@ -310,6 +310,7 @@ export type Reservation = {
   guestEmail: string;
   guestPhone: string | null;
   checkInDate: string;
+  checkInDateReached?: boolean;
   checkOutDate: string;
   adults: number;
   children: number;

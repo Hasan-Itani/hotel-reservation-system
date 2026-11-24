@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { parseDateOnlyToUtc } from "../booking-domain/hotel-inventory";
+import { hasReachedCheckInDate } from "../booking-domain/hotel-local-date";
 import { reservationListQuerySchema } from "./reservation-list-query";
 import { canRefundReservation } from "./refund-policy";
 
@@ -86,7 +87,7 @@ async function getReservationById(database: PrismaClient, hotelId: string, reser
       id: reservationId,
       hotelId,
     },
-    select: getReservationSelect(),
+    select: { ...getReservationSelect(), hotel: { select: { timezone: true } } },
   });
 }
 
@@ -243,7 +244,9 @@ export async function readAdminReservation(
     );
   }
 
-  return readResponse({ reservation });
+  const { hotel, ...details } = reservation;
+  const checkInDateReached = hasReachedCheckInDate(details.checkInDate, hotel.timezone);
+  return readResponse({ reservation: { ...details, checkInDateReached } });
 }
 
 export async function listAdminReservationPayments(

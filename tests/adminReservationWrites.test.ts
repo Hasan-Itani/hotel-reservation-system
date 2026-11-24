@@ -93,12 +93,18 @@ describe("admin reservation writes", () => {
     let assignedRoom: string | null = null;
     const roomStatuses: string[] = [];
     const auditActions: string[] = [];
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const checkInDate = new Date(today);
+    checkInDate.setUTCDate(today.getUTCDate() - 2);
+    const checkOutDate = new Date(today);
+    checkOutDate.setUTCDate(today.getUTCDate() + 2);
     const reservation = {
       findFirst: async ({ where }: Prisma.ReservationFindFirstArgs) => {
         assert.deepEqual(where, { id: reservationId, hotelId });
         return {
           id: reservationId, reservationNumber: "RSV-FIXTURE", status,
-          checkInDate: new Date("2030-11-25"), checkOutDate: new Date("2030-11-27"),
+          checkInDate, checkOutDate, hotel: { timezone: "Asia/Beirut" },
           reservationRooms: [{ id: reservationRoomId, roomId: assignedRoom, roomTypeId }],
         };
       },
@@ -146,5 +152,19 @@ describe("admin reservation writes", () => {
     assert.equal(repeat.checkoutCompleted, undefined);
     assert.deepEqual(roomStatuses, ["OCCUPIED", "AVAILABLE"]);
     assert.deepEqual(auditActions, ["RESERVATION_CHECKED_IN", "RESERVATION_CHECKED_OUT"]);
+  });
+
+  it("rejects check-in before arrival without starting an inventory transaction", async () => {
+    const database = {
+      reservation: { findFirst: async () => ({
+        id: reservationId, status: "CONFIRMED", checkInDate: new Date("2099-11-25"), hotel: { timezone: "Asia/Beirut" },
+      }) },
+      $transaction: async () => assert.fail("Early check-in should not write inventory"),
+    } as unknown as PrismaClient;
+    const response = await updateAdminReservation(database, staff, hotelId, reservationId, async () => ({
+      action: "CHECK_IN",
+      roomAssignments: [{ reservationRoomId, roomId }],
+    }));
+    assert.deepEqual(response, { status: 409, body: { error: "Check-in is not available before the scheduled arrival date" } });
   });
 });

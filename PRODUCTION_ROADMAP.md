@@ -78,7 +78,7 @@ Legend:
 - [x] Verify repayment receipt delivery after a full mock refund.
 - [x] Hide refund actions for completed stays and reject them in the API. Keep cancelled and no-show reservations eligible.
 - [x] Send a checkout summary with the stay dates, recorded payments and full refunds, and the balance when known. Checkout does not charge the guest.
-- [ ] Verify checkout summary delivery in a controlled inbox.
+- [x] Verify checkout summary delivery in a controlled inbox.
 - [ ] Add a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
 - [ ] Cancellation email.
 - [ ] Contact inquiry received email.
@@ -123,6 +123,7 @@ Legend:
 - [x] Show field-level validation and clearer API errors in admin and guest forms.
 - [x] Use a compact reservation list and load full reservation details only when selected, without scrolling or shifting the desktop page.
 - [x] Scroll to room assignments when staff opens check-in.
+- [x] Disable check-in before the booked arrival date in the hotel's timezone. Keep early checkout available after check-in.
 
 - [ ] Add admin overview stats:
   - Today's check-ins

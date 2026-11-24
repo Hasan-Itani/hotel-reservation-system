@@ -2,6 +2,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { createAuditLog } from "../common/audit-log";
 import type { AuthUser } from "../common/permissions";
 import { BLOCKING_RESERVATION_STATUSES, generateReservationNumber } from "../booking-domain/hotel-inventory";
+import { hasReachedCheckInDate } from "../booking-domain/hotel-local-date";
 import { validateReservationRoomAvailability } from "../booking-domain/reservation-availability";
 import { lockHotelReservationInventory } from "../booking-domain/reservation-concurrency";
 import { calculateReservationPricing, getRoomTypeNightlyPrice } from "../booking-domain/reservation-pricing";
@@ -317,6 +318,7 @@ export async function updateAdminReservation(
       status: true,
       checkInDate: true,
       checkOutDate: true,
+      hotel: { select: { timezone: true } },
       reservationRooms: {
         select: {
           id: true,
@@ -450,6 +452,13 @@ export async function updateAdminReservation(
   }
 
   if (input.action === "CHECK_IN") {
+    if (!hasReachedCheckInDate(existingReservation.checkInDate, existingReservation.hotel.timezone)) {
+      return writeResponse(
+        { error: "Check-in is not available before the scheduled arrival date" },
+        { status: 409 },
+      );
+    }
+
     const assignments = input.roomAssignments ?? [];
     const reservationRoomIds = assignments.map(
       (item) => item.reservationRoomId,

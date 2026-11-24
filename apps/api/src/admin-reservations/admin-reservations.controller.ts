@@ -1,5 +1,8 @@
 import { Body, Controller, Get, Headers, Inject, Param, Patch, Post, Req, Res } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { isPaidPaymentResponse } from "../booking-domain/paid-confirmation-email";
+import { tryPaidBookingConfirmation } from "../booking-domain/paid-confirmation-mailer";
 import { canAccessHotel, type AuthUser } from "../common/permissions";
 import { PrismaService } from "../database/prisma.service";
 import { SessionsService } from "../sessions/sessions.service";
@@ -14,6 +17,7 @@ export class AdminReservationsController {
   constructor(
     @Inject(SessionsService) private readonly sessions: SessionsService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
   @Get()
@@ -98,8 +102,8 @@ export class AdminReservationsController {
     @Body() body: unknown,
     @Res() reply: FastifyReply,
   ) {
-    return this.write(authorization, reply, (user) =>
-      createAdminMockPayment(this.prisma, user, hotelId, reservationId, async () => body),
+    return this.write(authorization, reply, async (user) =>
+      this.notifyPayment(reservationId, await createAdminMockPayment(this.prisma, user, hotelId, reservationId, async () => body)),
     );
   }
 
@@ -112,9 +116,16 @@ export class AdminReservationsController {
     @Body() body: unknown,
     @Res() reply: FastifyReply,
   ) {
-    return this.write(authorization, reply, (user) =>
-      updateAdminPaymentStatus(this.prisma, user, hotelId, reservationId, paymentId, async () => body),
+    return this.write(authorization, reply, async (user) =>
+      this.notifyPayment(reservationId, await updateAdminPaymentStatus(this.prisma, user, hotelId, reservationId, paymentId, async () => body)),
     );
+  }
+
+  private async notifyPayment(reservationId: string, result: ReservationWriteResult) {
+    if (isPaidPaymentResponse(result)) {
+      await tryPaidBookingConfirmation(this.prisma, this.config, { id: reservationId });
+    }
+    return result;
   }
 
   private async write(

@@ -64,16 +64,20 @@ Legend:
 
 ## Phase 3: Real Notifications
 
-- [~] Resend integration exists for auth emails only.
+- [~] Resend integration handles auth emails and paid booking confirmations.
 - [x] Password reset email.
 - [x] Email verification email.
-- [ ] Booking confirmation email.
-- [ ] Payment confirmation email.
+- [x] Send one combined booking/payment confirmation when a successful payment leaves the reservation confirmed and fully paid. Label mock payments as test payments.
+- [ ] Test confirmation delivery to a controlled inbox after applying the migration.
+- [ ] Add a refund notice when a refund is recorded, distinguishing mock refunds from funds returned to a card.
+- [ ] Add optional partial-payment receipts with the amount paid and remaining balance.
+- [ ] Add a checkout receipt or folio and a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
 - [ ] Cancellation email.
 - [ ] Contact inquiry received email.
 - [ ] Admin inquiry alert email.
 - [ ] Notification log table.
 - [ ] Admin resend notification action.
+  - The paid confirmation currently records one send attempt per reservation; email provider errors do not change a completed payment. Automatic retries and staff resend are not implemented.
 - [ ] Production sending domain verification.
 
 ## Phase 4: Real Payments

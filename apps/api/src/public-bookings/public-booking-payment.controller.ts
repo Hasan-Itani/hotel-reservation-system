@@ -1,5 +1,8 @@
 import { Body, Controller, Headers, Inject, Param, Post, Req, Res } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { isPaidPaymentResponse } from "../booking-domain/paid-confirmation-email";
+import { tryPaidBookingConfirmation } from "../booking-domain/paid-confirmation-mailer";
 import { submitPublicPayment } from "../booking-domain/submit-public-payment";
 import { getClientIp } from "../common/rate-limit/client-ip";
 import { RateLimitService } from "../common/rate-limit/rate-limit.service";
@@ -12,6 +15,7 @@ export class PublicBookingPaymentController {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RateLimitService) private readonly rateLimit: RateLimitService,
     @Inject(SessionsService) private readonly sessions: SessionsService,
+    @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
   @Post(":reservationNumber/pay")
@@ -41,6 +45,9 @@ export class PublicBookingPaymentController {
       const session = await this.sessions.getCurrentSession(authorization);
       return session?.user ?? null;
     });
+    if (isPaidPaymentResponse(result)) {
+      await tryPaidBookingConfirmation(this.prisma, this.config, { reservationNumber: reservationNumber.trim().toUpperCase() });
+    }
     return reply.status(result.status).send(result.body);
   }
 }

@@ -194,6 +194,7 @@ model Reservation {
   discountAmount     Decimal           @default(0) @db.Decimal(10, 2)
   serviceFee         Decimal           @default(0) @db.Decimal(10, 2)
   cancellationReason String?
+  paidConfirmationEmailAttemptedAt DateTime?
   payments           Payment[]
   hotel              Hotel             @relation(fields: [hotelId], references: [id])
   user               User?             @relation(fields: [userId], references: [id])

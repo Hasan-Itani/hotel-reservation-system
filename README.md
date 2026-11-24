@@ -178,6 +178,7 @@ Email note:
 - `onboarding@resend.dev` is only useful for limited Resend testing.
 - Resend may only send to the Resend account email until a real sending domain is verified.
 - For real production, use a verified domain and an address like `bookings@yourdomain.com`.
+- A confirmed reservation receives one email attempt after a successful full payment. Mock payment emails are marked as tests. An email delivery error does not undo a payment, and automatic retry is not enabled.
 
 ## Local Setup
 

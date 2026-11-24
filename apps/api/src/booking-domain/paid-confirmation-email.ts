@@ -1,24 +1,21 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
+import type { SendTransactionalEmail } from "../common/resend-sender";
 import { calculatePaidAmount, calculateRemainingBalance } from "./reservation-payments";
 
-type ConfirmationMessage = {
-  to: string;
-  subject: string;
-  text: string;
-};
-
-type SendConfirmation = (message: ConfirmationMessage, key: string) => Promise<void>;
-
-export function isPaidPaymentResponse(result: { status: number; body: object }) {
+export function hasSuccessfulPaymentStatus(result: { status: number; body: object }, status: string) {
   if (result.status < 200 || result.status >= 300 || !("payment" in result.body)) return false;
   const payment = result.body.payment;
-  return Boolean(payment && typeof payment === "object" && "status" in payment && payment.status === "PAID");
+  return Boolean(payment && typeof payment === "object" && "status" in payment && payment.status === status);
+}
+
+export function isPaidPaymentResponse(result: { status: number; body: object }) {
+  return hasSuccessfulPaymentStatus(result, "PAID");
 }
 
 export async function sendPaidBookingConfirmation(
   database: Pick<PrismaClient, "$transaction">,
   where: Prisma.ReservationWhereUniqueInput,
-  send: SendConfirmation,
+  send: SendTransactionalEmail,
 ) {
   const reservation = await database.$transaction(async (tx) => {
     const booking = await tx.reservation.findUnique({

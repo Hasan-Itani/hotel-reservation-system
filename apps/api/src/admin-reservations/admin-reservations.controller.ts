@@ -4,11 +4,13 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { isPaidPaymentResponse } from "../booking-domain/paid-confirmation-email";
 import { tryPaidBookingConfirmation } from "../booking-domain/paid-confirmation-mailer";
 import { canAccessHotel, type AuthUser } from "../common/permissions";
+import { getResendSender } from "../common/resend-sender";
 import { PrismaService } from "../database/prisma.service";
 import { SessionsService } from "../sessions/sessions.service";
 import { listAdminReservations, listAdminReservationPayments, readAdminReservation, readAdminReservationPayment } from "./reservation-reads";
 
 import { createAdminMockPayment, updateAdminPaymentStatus } from "./payment-writes";
+import { notifyMockRefund } from "./refund-notice";
 import { createAdminReservation, updateAdminReservation } from "./reservation-writes";
 import type { ReservationWriteResult } from "./reservation-write-access";
 
@@ -116,9 +118,11 @@ export class AdminReservationsController {
     @Body() body: unknown,
     @Res() reply: FastifyReply,
   ) {
-    return this.write(authorization, reply, async (user) =>
-      this.notifyPayment(reservationId, await updateAdminPaymentStatus(this.prisma, user, hotelId, reservationId, paymentId, async () => body)),
-    );
+    return this.write(authorization, reply, async (user) => {
+      const result = await updateAdminPaymentStatus(this.prisma, user, hotelId, reservationId, paymentId, async () => body);
+      await this.notifyPayment(reservationId, result);
+      return notifyMockRefund(this.prisma, { hotelId, reservationId, paymentId }, result, getResendSender(this.config));
+    });
   }
 
   private async notifyPayment(reservationId: string, result: ReservationWriteResult) {

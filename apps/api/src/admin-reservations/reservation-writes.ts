@@ -273,7 +273,10 @@ export async function createAdminReservation(
   }
 }
 
-export type ReservationUpdateResult = ReservationWriteResult & { checkoutCompleted?: true };
+export type ReservationUpdateResult = ReservationWriteResult & {
+  checkoutCompleted?: true;
+  cancellationCompleted?: true;
+};
 
 export async function updateAdminReservation(
   database: PrismaClient,
@@ -386,37 +389,46 @@ export async function updateAdminReservation(
   }
 
   if (input.action === "CANCEL") {
-    const reservation = await database.reservation.update({
-      where: {
-        id: reservationId,
-      },
-      data: {
-        status: "CANCELLED",
-        cancelledAt: new Date(),
-        cancellationReason: input.cancellationReason ?? null,
-      },
-      select: getReservationSelect(),
-    });
+    try {
+      const reservation = await database.$transaction(async (tx) => {
+        const updated = await tx.reservation.update({
+          where: { id: reservationId, hotelId, status: existingReservation.status },
+          data: {
+            status: "CANCELLED",
+            cancelledAt: new Date(),
+            cancellationReason: input.cancellationReason ?? null,
+          },
+          select: getReservationSelect(),
+        });
 
-    await createAuditLog({
-      hotelId,
-      actorUserId: access.user.id,
-      action: "RESERVATION_CANCELLED",
-      entityType: "Reservation",
-      entityId: reservation.id,
-      summary: `Reservation ${reservation.reservationNumber} was cancelled`,
-      metadata: {
-        reservationNumber: reservation.reservationNumber,
-        previousStatus: existingReservation.status,
-        nextStatus: reservation.status,
-        cancellationReason: reservation.cancellationReason,
-      },
-    }, database);
+        await createAuditLog({
+          hotelId,
+          actorUserId: access.user.id,
+          action: "RESERVATION_CANCELLED",
+          entityType: "Reservation",
+          entityId: updated.id,
+          summary: `Reservation ${updated.reservationNumber} was cancelled`,
+          metadata: {
+            reservationNumber: updated.reservationNumber,
+            previousStatus: existingReservation.status,
+            nextStatus: updated.status,
+            cancellationReason: updated.cancellationReason,
+          },
+        }, tx);
 
-    return writeResponse({
-      message: "Reservation cancelled successfully",
-      reservation,
-    });
+        return updated;
+      });
+
+      return {
+        ...writeResponse({ message: "Reservation cancelled successfully", reservation }),
+        cancellationCompleted: true,
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+        return writeResponse({ error: "Reservation status changed. Refresh and try again." }, { status: 409 });
+      }
+      throw error;
+    }
   }
 
   if (input.action === "NO_SHOW") {

@@ -12,6 +12,7 @@ import { listAdminReservations, listAdminReservationPayments, readAdminReservati
 
 import { createAdminMockPayment, updateAdminPaymentStatus, type PaymentWriteResult } from "./payment-writes";
 import { notifyCheckoutSummary } from "./checkout-summary";
+import { notifyCancellation } from "./cancellation-email";
 import { notifyMockRefund } from "./refund-notice";
 import { createAdminReservation, updateAdminReservation } from "./reservation-writes";
 import type { ReservationWriteResult } from "./reservation-write-access";
@@ -95,7 +96,11 @@ export class AdminReservationsController {
   ) {
     return this.write(authorization, reply, async (user) => {
       const result = await updateAdminReservation(this.prisma, user, hotelId, reservationId, async () => body);
-      return notifyCheckoutSummary(this.prisma, { hotelId, reservationId }, result, getResendSender(this.config));
+      const scope = { hotelId, reservationId };
+      const send = getResendSender(this.config);
+      return result.cancellationCompleted
+        ? notifyCancellation(this.prisma, scope, result, send)
+        : notifyCheckoutSummary(this.prisma, scope, result, send);
     });
   }
 

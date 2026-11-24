@@ -80,7 +80,8 @@ Legend:
 - [x] Send a checkout summary with the stay dates, recorded payments and full refunds, and the balance when known. Checkout does not charge the guest.
 - [x] Verify checkout summary delivery in a controlled inbox.
 - [ ] Add a pre-arrival message; skip a separate check-in email unless it provides useful instructions.
-- [ ] Cancellation email.
+- [x] Send a guest cancellation email after staff cancels a booking. Keep internal notes and refund actions separate.
+- [ ] Verify cancellation email delivery in a controlled inbox.
 - [ ] Contact inquiry received email.
 - [ ] Admin inquiry alert email.
 - [ ] Notification log table.

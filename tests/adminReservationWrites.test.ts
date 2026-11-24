@@ -33,6 +33,36 @@ const booking = {
 };
 
 describe("admin reservation writes", () => {
+  it("commits only one cancellation and audit entry when staff submit twice", async () => {
+    let status: ReservationStatus = "CONFIRMED";
+    const audits: string[] = [];
+    const tx = {
+      reservation: {
+        update: async ({ where, data }: Prisma.ReservationUpdateArgs) => {
+          assert.equal(where.hotelId, hotelId);
+          if (where.status !== status) {
+            throw new Prisma.PrismaClientKnownRequestError("Stale status", { code: "P2025", clientVersion: "test" });
+          }
+          assert.equal(data.cancellationReason, "Internal note");
+          status = "CANCELLED";
+          return { id: reservationId, reservationNumber: "RSV-TEST", status, cancellationReason: data.cancellationReason };
+        },
+      },
+      auditLog: { create: async ({ data }: { data: Prisma.AuditLogUncheckedCreateInput }) => audits.push(data.action) },
+    };
+    const database = {
+      reservation: { findFirst: async () => ({ id: reservationId, status }) },
+      $transaction: async (run: (client: typeof tx) => Promise<unknown>) => run(tx),
+    } as unknown as PrismaClient;
+    const cancel = () => updateAdminReservation(database, staff, hotelId, reservationId, async () => ({
+      action: "CANCEL", cancellationReason: "Internal note",
+    }));
+    const results = await Promise.all([cancel(), cancel()]);
+    assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+    assert.equal(results.filter((result) => result.cancellationCompleted).length, 1);
+    assert.deepEqual(audits, ["RESERVATION_CANCELLED"]);
+  });
+
   it("enforces both hotel scope and the write role before parsing or querying", async () => {
     const database = {} as PrismaClient;
     const unread = async () => assert.fail("An unauthorized request tried to read the body");
